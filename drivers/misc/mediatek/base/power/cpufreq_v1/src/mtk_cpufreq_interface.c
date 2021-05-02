@@ -91,7 +91,7 @@ static ssize_t cpufreq_debug_proc_write(struct file *file,
 
 	rc = kstrtoint(buf, 10, &dbg_lv);
 	if (rc < 0)
-		tag_pr_info
+		tag_pr_debug
 		("echo dbg_lv (dec) > /proc/cpufreq/cpufreq_debug\n");
 	else
 		func_lv_mask = dbg_lv;
@@ -124,7 +124,7 @@ static ssize_t cpufreq_power_mode_proc_write(struct file *file,
 		dvfs_power_mode = mode;
 		tag_pr_debug("%s start\n", power_mode_str[mode]);
 	} else {
-		tag_pr_info
+		tag_pr_debug
 		("echo 0/1/2/3 > /proc/cpufreq/cpufreq_power_mode\n");
 	}
 
@@ -150,7 +150,7 @@ static ssize_t cpufreq_stress_test_proc_write(struct file *file,
 		return -EINVAL;
 	rc = kstrtoint(buf, 10, &do_stress);
 	if (rc < 0)
-		tag_pr_info("echo 0/1 > /proc/cpufreq/cpufreq_stress_test\n");
+		tag_pr_debug("echo 0/1 > /proc/cpufreq/cpufreq_stress_test\n");
 	else {
 		do_dvfs_stress_test = do_stress;
 #ifdef CONFIG_HYBRID_CPU_DVFS
@@ -206,7 +206,7 @@ static ssize_t cpufreq_oppidx_proc_write(struct file *file,
 	rc = kstrtoint(buf, 10, &oppidx);
 	if (rc < 0) {
 		p->dvfs_disable_by_procfs = false;
-		tag_pr_info("echo oppidx > /proc/cpufreq/%s/cpufreq_oppidx\n",
+		tag_pr_debug("echo oppidx > /proc/cpufreq/%s/cpufreq_oppidx\n",
 		p->name);
 	} else {
 		if (oppidx >= 0 && oppidx < p->nr_opp_tbl) {
@@ -222,7 +222,7 @@ static ssize_t cpufreq_oppidx_proc_write(struct file *file,
 #endif
 		} else {
 			p->dvfs_disable_by_procfs = false;
-			tag_pr_info
+			tag_pr_debug
 			("echo oppidx > /proc/cpufreq/%s/cpufreq_oppidx\n",
 			p->name);
 		}
@@ -262,7 +262,7 @@ static ssize_t cpufreq_freq_proc_write(struct file *file,
 	rc = kstrtoint(buf, 10, &freq);
 	if (rc < 0) {
 		p->dvfs_disable_by_procfs = false;
-		tag_pr_info
+		tag_pr_debug
 		("echo khz > /proc/cpufreq/%s/cpufreq_freq\n", p->name);
 	} else {
 #ifdef CONFIG_MTK_CPU_MSSV
@@ -301,7 +301,7 @@ static ssize_t cpufreq_freq_proc_write(struct file *file,
 #else
 		if (freq < p->opp_tbl[p->nr_opp_tbl - 1].cpufreq_khz) {
 			if (freq != 0)
-				tag_pr_info
+				tag_pr_debug
 				("frequency should higher than %dKHz!\n",
 				p->opp_tbl[p->nr_opp_tbl - 1].cpufreq_khz);
 
@@ -327,7 +327,7 @@ static ssize_t cpufreq_freq_proc_write(struct file *file,
 #endif
 			} else {
 				p->dvfs_disable_by_procfs = false;
-				tag_pr_info
+				tag_pr_debug
 			("frequency %dKHz! is not found in CPU opp table\n",
 					    freq);
 			}
@@ -379,7 +379,7 @@ static ssize_t cpufreq_volt_proc_write(struct file *file,
 	rc = kstrtoint(buf, 10, &uv);
 	if (rc < 0) {
 		p->dvfs_disable_by_procfs = false;
-		tag_pr_info
+		tag_pr_debug
 		("echo uv > /proc/cpufreq/%s/cpufreq_volt\n", p->name);
 	} else {
 		p->dvfs_disable_by_procfs = true;
@@ -399,7 +399,7 @@ static ssize_t cpufreq_volt_proc_write(struct file *file,
 		vproc_p->fix_volt = uv / 10;
 		ret = set_cur_volt_wrapper(p, vproc_p->fix_volt);
 		if (ret)
-			tag_pr_info("%s err to set_cur_volt_wrapper ret = %d\n",
+			tag_pr_debug("%s err to set_cur_volt_wrapper ret = %d\n",
 					__func__, ret);
 #endif
 		cpufreq_unlock(flags);
@@ -435,7 +435,7 @@ static ssize_t cpufreq_turbo_mode_proc_write(struct file *file,
 		return -EINVAL;
 	rc = kstrtoint(buf, 10, &turbo_mode);
 	if (rc < 0)
-		tag_pr_info
+		tag_pr_debug
 		("echo 0/1 > /proc/cpufreq/%s/cpufreq_turbo_mode\n", p->name);
 	else {
 		p->turbo_mode = turbo_mode;
@@ -478,7 +478,7 @@ static ssize_t cpufreq_sched_disable_proc_write(struct file *file,
 		return -EINVAL;
 	rc = kstrtoint(buf, 10, &sched_disable);
 	if (rc < 0)
-		tag_pr_info
+		tag_pr_debug
 		("echo 0/1 > /proc/cpufreq/cpufreq_sched_disable\n");
 	else {
 #ifdef CONFIG_HYBRID_CPU_DVFS
@@ -524,7 +524,7 @@ static ssize_t cpufreq_dvfs_time_profile_proc_write(struct file *file,
 
 	rc = kstrtoint(buf, 10, &temp);
 	if (rc < 0)
-		tag_pr_info
+		tag_pr_debug
 		("echo 1 > /proc/cpufreq/cpufreq_dvfs_time_profile\n");
 	else {
 		if (temp == 1) {
@@ -590,7 +590,7 @@ static ssize_t cpufreq_cci_map_table_proc_write(struct file *file,
 			idx_2, result, mode, 0);
 #endif
 	} else
-		tag_pr_info(
+		tag_pr_debug(
 		"Usage: echo <L_idx> <B_idx> <result> <mode>\n");
 
 	return count;
@@ -625,7 +625,7 @@ static ssize_t cpufreq_cci_mode_proc_write(struct file *file,
 	rc = kstrtoint(buf, 10, &mode);
 
 	if (rc < 0)
-		tag_pr_info(
+		tag_pr_debug(
 		"Usage: echo <mode>(0:Nom 1:Perf)\n");
 	else {
 #ifdef CONFIG_HYBRID_CPU_DVFS
@@ -666,7 +666,7 @@ static ssize_t cpufreq_imax_enable_proc_write(struct file *file,
 	rc = kstrtoint(buf, 10, &state);
 
 	if (rc < 0)
-		tag_pr_info(
+		tag_pr_debug(
 		"Usage: echo ON/OFF(0:Disable 1:Enable 2:Enable MPMM)\n");
 	else {
 #ifdef CONFIG_HYBRID_CPU_DVFS
@@ -718,7 +718,7 @@ static ssize_t cpufreq_imax_thermal_protect_proc_write(struct file *file,
 	rc = kstrtoint(buf, 10, &state);
 
 	if (rc < 0)
-		tag_pr_info(
+		tag_pr_debug(
 		"Usage: echo ON/OFF(0:Disable 1:Enable)\n");
 	else {
 #ifdef CONFIG_HYBRID_CPU_DVFS
@@ -792,7 +792,7 @@ int cpufreq_procfs_init(void)
 	dir = proc_mkdir("cpufreq", NULL);
 
 	if (!dir) {
-		tag_pr_notice("fail to create /proc/cpufreq @ %s()\n",
+		tag_pr_debug("fail to create /proc/cpufreq @ %s()\n",
 								__func__);
 		return -ENOMEM;
 	}
@@ -800,7 +800,7 @@ int cpufreq_procfs_init(void)
 	for (i = 0; i < ARRAY_SIZE(entries); i++) {
 		if (!proc_create
 		    (entries[i].name, 0664, dir, entries[i].fops))
-			tag_pr_notice("%s(), create /proc/cpufreq/%s failed\n",
+			tag_pr_debug("%s(), create /proc/cpufreq/%s failed\n",
 				__func__, entries[i].name);
 	}
 
@@ -808,7 +808,7 @@ int cpufreq_procfs_init(void)
 		cpu_dir = proc_mkdir(p->name, dir);
 
 		if (!cpu_dir) {
-			tag_pr_notice
+			tag_pr_debug
 				("fail to create /proc/cpufreq/%s @ %s()\n",
 				p->name, __func__);
 			return -ENOMEM;
@@ -818,7 +818,7 @@ int cpufreq_procfs_init(void)
 			if (!proc_create_data
 			    (cpu_entries[i].name, 0664,
 			    cpu_dir, cpu_entries[i].fops, p))
-				tag_pr_notice
+				tag_pr_debug
 				("%s(), create /proc/cpufreq/%s/%s failed\n",
 				__func__, p->name, entries[i].name);
 		}
