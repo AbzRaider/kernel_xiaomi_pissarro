@@ -638,8 +638,8 @@ unsigned int _mt_cpufreq_get_cpu_level(void)
 	else
 		lv = CPU_LEVEL_1;
 
-	tag_pr_info("%d, Settle time(%d, %d) efuse_val = 0x%x\n",
-		lv, UP_SRATE, DOWN_SRATE, val);
+	tag_pr_debug("%d, %d, (%d, %d) efuse_val = 0x%x\n",
+		lv, turbo_flag, UP_SRATE, DOWN_SRATE, val);
 	return lv;
 }
 #ifdef DFD_WORKAROUND
