@@ -2090,6 +2090,14 @@ void mt_gpufreq_set_power_limit_by_pbm(unsigned int limited_power)
 	mutex_unlock(&mt_gpufreq_power_lock);
 }
 
+
+int mt_gpufreq_get_gpu_temp(void)
+{
+	return get_immediate_gpu_wrap();
+}
+EXPORT_SYMBOL(mt_gpufreq_get_gpu_temp);
+
+
 /*
  * API : set GPU loading for SSPM
  */
