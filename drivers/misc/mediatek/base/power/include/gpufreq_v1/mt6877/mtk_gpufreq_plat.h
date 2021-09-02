@@ -146,6 +146,7 @@ extern struct mt_gpufreq_power_table_info *pass_gpu_table_to_eara(void);
 extern unsigned int mt_gpufreq_get_seg_max_opp_index(void);
 extern void mt_gpufreq_thermal_protect(unsigned int limited_power);
 extern void mt_gpufreq_restore_default_volt(void);
+extern int mt_gpufreq_get_immed_gpu_temp(void);
 extern unsigned int mt_gpufreq_get_max_power(void);
 extern unsigned int mt_gpufreq_get_min_power(void);
 extern unsigned int mt_gpufreq_get_thermal_limit_index(void);
