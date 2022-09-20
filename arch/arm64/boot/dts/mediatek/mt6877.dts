@@ -5455,6 +5455,8 @@
 
 	i2c3: i2c3@11cb0000 {
 		compatible = "mediatek,i2c";
+		#address-cells = <1>;
+		#size-cells = <0>;
 		id = <3>;
 		reg = <0 0x11cb0000 0 0x1000>,
 			<0 0x10220580 0 0x80>;
@@ -5515,6 +5517,8 @@
 
 	i2c6: i2c6@11f00000 {
 		compatible = "mediatek,i2c";
+		#address-cells = <1>;
+		#size-cells = <0>;
 		id = <6>;
 		reg = <0 0x11f00000 0 0x1000>,
 			<0 0x10220800 0 0x80>;
