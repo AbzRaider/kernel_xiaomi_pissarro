@@ -2152,7 +2152,6 @@ int goodix_ts_fb_notifier_callback(struct notifier_block *self,
 		if (event == MI_DISP_DPMS_EARLY_EVENT && (blank == MI_DISP_DPMS_POWERDOWN ||
 			blank == MI_DISP_DPMS_LP1 || blank == MI_DISP_DPMS_LP2)) {
 			ts_info("touchpanel suspend by %s", blank == MI_DISP_DPMS_POWERDOWN ? "blank" : "doze");
-			queue_work(core_data->event_wq, &core_data->suspend_work);
 		} else if (event == MI_DISP_DPMS_EVENT && blank == MI_DISP_DPMS_ON) {
 			ts_info("touchpanel resume");
 			queue_work(core_data->event_wq, &core_data->resume_work);
