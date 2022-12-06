@@ -1179,3 +1179,4 @@ MODULE_LICENSE("GPL");
 
 module_init(xiaomi_touch_init);
 module_exit(xiaomi_touch_exit);
+
