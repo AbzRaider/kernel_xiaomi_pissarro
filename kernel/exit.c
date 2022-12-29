@@ -2,6 +2,7 @@
  *  linux/kernel/exit.c
  *
  *  Copyright (C) 1991, 1992  Linus Torvalds
+ *  Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #include <linux/mm.h>
@@ -876,6 +877,7 @@ void __noreturn do_exit(long code)
 
 	sched_autogroup_exit_task(tsk);
 	cgroup_exit(tsk);
+	uclamp_exit_task(tsk);
 
 	/*
 	 * FIXME: do that only when needed, using sched_exit tracepoint

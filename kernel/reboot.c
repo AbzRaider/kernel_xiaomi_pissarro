@@ -2,6 +2,7 @@
  *  linux/kernel/reboot.c
  *
  *  Copyright (C) 2013  Linus Torvalds
+ *  Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #define pr_fmt(fmt)	"reboot: " fmt
@@ -220,6 +221,13 @@ void kernel_restart(char *cmd)
 		pr_emerg("Restarting system\n");
 	else
 		pr_emerg("Restarting system with command '%s'\n", cmd);
+
+	pr_emerg("-------kernel_restart-------\n");
+	pr_emerg("%s, current pid: %d, thread name:%s\n", __func__, current->pid, current->comm);
+	pr_emerg("%s, real parent pid: %d, real parent thread name:%s\n", __func__, current->real_parent->pid, current->real_parent->comm);
+	pr_emerg("%s,      parent pid: %d,      parent thread name:%s\n", __func__, current->parent->pid, current->parent->comm);
+
+
 	kmsg_dump(KMSG_DUMP_RESTART);
 	machine_restart(cmd);
 }
