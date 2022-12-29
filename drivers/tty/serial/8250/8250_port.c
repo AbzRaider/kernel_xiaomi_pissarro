@@ -38,6 +38,7 @@
 #include <linux/uaccess.h>
 #include <linux/pm_runtime.h>
 #include <linux/ktime.h>
+#include "mt-plat/mtk_printk_ctrl.h"
 
 #include <asm/io.h>
 #include <asm/irq.h>
@@ -724,19 +725,26 @@ static void serial8250_set_sleep(struct uart_8250_port *p, int sleep)
 		goto out;
 	}
 
+	#define UART_EFR_MTK 0x26
+	#define UART_NEW_MAP 0x27
+
 	if (p->capabilities & UART_CAP_SLEEP) {
 		if (p->capabilities & UART_CAP_EFR) {
-			lcr = serial_in(p, UART_LCR);
-			efr = serial_in(p, UART_EFR);
-			serial_out(p, UART_LCR, UART_LCR_CONF_MODE_B);
-			serial_out(p, UART_EFR, UART_EFR_ECB);
-			serial_out(p, UART_LCR, 0);
+			//lcr = serial_in(p, UART_LCR);
+			//serial_out(p, UART_LCR, UART_LCR_CONF_MODE_B);
+			serial_out(p, UART_NEW_MAP, 0x1);
+			efr = serial_in(p, UART_EFR_MTK);
+			serial_out(p, UART_EFR_MTK, UART_EFR_ECB);
+			serial_out(p, UART_NEW_MAP, 0x0);
+			//serial_out(p, UART_LCR, 0);
 		}
 		serial_out(p, UART_IER, sleep ? UART_IERX_SLEEP : 0);
 		if (p->capabilities & UART_CAP_EFR) {
-			serial_out(p, UART_LCR, UART_LCR_CONF_MODE_B);
-			serial_out(p, UART_EFR, efr);
-			serial_out(p, UART_LCR, lcr);
+			//serial_out(p, UART_LCR, UART_LCR_CONF_MODE_B);
+			serial_out(p, UART_NEW_MAP, 0x1);
+			serial_out(p, UART_EFR_MTK, efr);
+			serial_out(p, UART_NEW_MAP, 0x0);
+			//serial_out(p, UART_LCR, lcr);
 		}
 	}
 out:
@@ -1692,9 +1700,18 @@ static void serial8250_read_char(struct uart_8250_port *up, unsigned char lsr)
 	unsigned char ch;
 	char flag = TTY_NORMAL;
 
-	if (likely(lsr & UART_LSR_DR))
+	if (likely(lsr & UART_LSR_DR)) {
 		ch = serial_in(up, UART_RX);
-	else
+		/* Enable uart log output on eng load when receive char input */
+		#ifndef CONFIG_FIQ_DEBUGGER
+		#ifdef CONFIG_MTK_ENG_BUILD
+		#ifdef CONFIG_MTK_PRINTK_UART_CONSOLE
+			if (ch == 'c')
+				mt_enable_uart();
+		#endif
+		#endif
+		#endif
+	} else
 		/*
 		 * Intel 82571 has a Serial Over Lan device that will
 		 * set UART_LSR_BI without setting UART_LSR_DR when
@@ -2736,8 +2753,9 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 			serial_port_out(port, UART_EFR, efr);
 	}
 
+#if 0
 	serial8250_set_divisor(port, baud, quot, frac);
-
+#endif
 	/*
 	 * LCR DLAB must be set to enable 64-byte FIFO mode. If the FCR
 	 * is written without DLAB set, this mode will be disabled.
@@ -2746,6 +2764,7 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 		serial_port_out(port, UART_FCR, up->fcr);
 
 	serial_port_out(port, UART_LCR, up->lcr);	/* reset DLAB */
+
 	if (port->type != PORT_16750) {
 		/* emulated UARTs (Lucent Venus 167x) need two steps */
 		if (up->fcr & UART_FCR_ENABLE_FIFO)

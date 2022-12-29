@@ -22,6 +22,7 @@
 #include <drm/drmP.h>
 #include "drm_internal.h"
 
+#include "./mediatek/mi_disp/mi_disp_sysfs.h"
 #define to_drm_minor(d) dev_get_drvdata(d)
 #define to_drm_connector(d) dev_get_drvdata(d)
 

@@ -41,13 +41,15 @@
 static struct device_attribute power_supply_attrs[];
 
 static const char * const power_supply_type_text[] = {
-	"Unknown", "Battery", "UPS", "Mains", "USB",
-	"USB_DCP", "USB_CDP", "USB_ACA", "USB_C",
-	"USB_PD", "USB_PD_DRP", "BrickID"
+	"Unknown", "Battery", "UPS", "Mains", "USB", "USB_FLOAT",
+	"USB_DCP", "USB_CDP", "USB_ACA", "USB_C", "USB_PD",
+	"USB_PD_DRP", "BrickID", "USB_HVDCP", "USB_HVDCP_3",
+	"USB_HVDCP_3P5", "Wireless"
 };
 
 static const char * const power_supply_status_text[] = {
-	"Unknown", "Charging", "Discharging", "Not charging", "Full"
+	"Unknown", "Charging", "Discharging", "Not charging", "Full",
+	"Cmd discharging"
 };
 
 static const char * const power_supply_charge_type_text[] = {
@@ -113,7 +115,7 @@ static ssize_t power_supply_show_property(struct device *dev,
 	else if (off == POWER_SUPPLY_PROP_CAPACITY_LEVEL)
 		return sprintf(buf, "%s\n",
 			       power_supply_capacity_level_text[value.intval]);
-	else if (off == POWER_SUPPLY_PROP_TYPE)
+	else if (off == POWER_SUPPLY_PROP_TYPE || off == POWER_SUPPLY_PROP_REAL_TYPE)
 		return sprintf(buf, "%s\n",
 			       power_supply_type_text[value.intval]);
 	else if (off == POWER_SUPPLY_PROP_SCOPE)
@@ -249,6 +251,63 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(precharge_current),
 	POWER_SUPPLY_ATTR(charge_term_current),
 	POWER_SUPPLY_ATTR(calibrate),
+
+	/* XM add */
+	POWER_SUPPLY_ATTR(chip_ok),
+	POWER_SUPPLY_ATTR(i2c_error_count),
+	POWER_SUPPLY_ATTR(charge_status),
+
+	/* only for usb_psy */
+	POWER_SUPPLY_ATTR(real_type),
+	POWER_SUPPLY_ATTR(quick_charge_type),
+	POWER_SUPPLY_ATTR(pd_authentication),
+	POWER_SUPPLY_ATTR(pd_verify_done),
+	POWER_SUPPLY_ATTR(pd_type),
+	POWER_SUPPLY_ATTR(apdo_max),
+	POWER_SUPPLY_ATTR(power_max),
+	POWER_SUPPLY_ATTR(typec_cc_orientation),
+	POWER_SUPPLY_ATTR(typec_mode),
+	POWER_SUPPLY_ATTR(ffc_enable),
+	POWER_SUPPLY_ATTR(connector_temp),
+	POWER_SUPPLY_ATTR(typec_burn),
+	POWER_SUPPLY_ATTR(sw_cv),
+	POWER_SUPPLY_ATTR(input_suspend),
+	POWER_SUPPLY_ATTR(jeita_chg_index),
+	POWER_SUPPLY_ATTR(cv_wa_count),
+#ifdef CONFIG_FACTORY_BUILD
+	POWER_SUPPLY_ATTR(cp_vbus),
+	POWER_SUPPLY_ATTR(cp_ibus_master),
+	POWER_SUPPLY_ATTR(cp_ibus_slave),
+#endif
+
+	/* only for battery */
+	POWER_SUPPLY_ATTR(thermal_limit_fcc),
+
+	/* only for XMUSB350 */
+	POWER_SUPPLY_ATTR(chg_type),
+	POWER_SUPPLY_ATTR(hvdcp3_type),
+	POWER_SUPPLY_ATTR(fw_version),
+	POWER_SUPPLY_ATTR(recheck_count),
+
+	/* only for TI GAUGE */
+	POWER_SUPPLY_ATTR(shutdown_delay),
+	POWER_SUPPLY_ATTR(capacity_raw),
+	POWER_SUPPLY_ATTR(soc_decimal),
+	POWER_SUPPLY_ATTR(soc_decimal_rate),
+	POWER_SUPPLY_ATTR(resistance),
+	POWER_SUPPLY_ATTR(resistance_id),
+	POWER_SUPPLY_ATTR(soh),
+	POWER_SUPPLY_ATTR(fastcharge_mode),
+	POWER_SUPPLY_ATTR(monitor_delay),
+	POWER_SUPPLY_ATTR(shutdown_mode),
+	POWER_SUPPLY_ATTR(fake_cycle_count),
+	POWER_SUPPLY_ATTR(charge_done),
+
+	 /* only for charge pump */
+	POWER_SUPPLY_ATTR(bypass),
+	POWER_SUPPLY_ATTR(bypass_support),
+	POWER_SUPPLY_ATTR(ln_reset_check),
+
 	/* Local extensions */
 	POWER_SUPPLY_ATTR(usb_hc),
 	POWER_SUPPLY_ATTR(usb_otg),
@@ -259,6 +318,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(model_name),
 	POWER_SUPPLY_ATTR(manufacturer),
 	POWER_SUPPLY_ATTR(serial_number),
+	POWER_SUPPLY_ATTR(device_chem),
 };
 
 static struct attribute *

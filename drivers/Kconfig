@@ -7,6 +7,8 @@ source "drivers/base/Kconfig"
 
 source "drivers/bus/Kconfig"
 
+source "drivers/mihw/Kconfig"
+
 source "drivers/connector/Kconfig"
 
 source "drivers/gnss/Kconfig"
@@ -78,6 +80,8 @@ source "drivers/power/Kconfig"
 source "drivers/hwmon/Kconfig"
 
 source "drivers/thermal/Kconfig"
+
+source "drivers/trusty/Kconfig"
 
 source "drivers/watchdog/Kconfig"
 
@@ -212,5 +216,9 @@ source "drivers/fsi/Kconfig"
 source "drivers/tee/Kconfig"
 
 source "drivers/mux/Kconfig"
+
+source "drivers/nfc/Kconfig"
+
+source "drivers/p73-spi/Kconfig"
 
 endmenu
