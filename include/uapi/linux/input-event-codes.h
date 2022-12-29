@@ -793,7 +793,8 @@
 #define SW_LINEIN_INSERT	0x0d  /* set = inserted */
 #define SW_MUTE_DEVICE		0x0e  /* set = device disabled */
 #define SW_PEN_INSERTED		0x0f  /* set = pen inserted */
-#define SW_MAX			0x0f
+#define SW_JACK_UNSUPPORTED	0x13  /* set = unsuported device inserted */
+#define SW_MAX			0x13
 #define SW_CNT			(SW_MAX+1)
 
 /*
