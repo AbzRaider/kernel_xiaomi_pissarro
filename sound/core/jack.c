@@ -2,6 +2,7 @@
  *  Jack abstraction layer
  *
  *  Copyright 2008 Wolfson Microelectronics
+ *  Copyright (C) 2021 XiaoMi, Inc.
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -40,6 +41,7 @@ static int jack_switch_types[SND_JACK_SWITCH_TYPES] = {
 	SW_JACK_PHYSICAL_INSERT,
 	SW_VIDEOOUT_INSERT,
 	SW_LINEIN_INSERT,
+	SW_JACK_UNSUPPORTED,
 };
 #endif /* CONFIG_SND_JACK_INPUT_DEV */
 
@@ -239,7 +241,6 @@ int snd_jack_new(struct snd_card *card, const char *id, int type,
 	if (!phantom_jack) {
 #ifdef CONFIG_SND_JACK_INPUT_DEV
 		int i;
-
 		jack->input_dev = input_allocate_device();
 		if (jack->input_dev == NULL) {
 			err = -ENOMEM;
