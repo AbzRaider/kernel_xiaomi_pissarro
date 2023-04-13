@@ -54,6 +54,9 @@ endif
         export WIFI_ECO_VER=1
         export ADAPTOR_OPTS=$(MTK_COMBO_CHIP)
 
+        # Remove debugging
+        export TARGET_BUILD_VARIANT=user
+
         # Do build-in for xxx.c checking
         subdir-ccflags-y += -D MTK_WCN_REMOVE_KERNEL_MODULE
         subdir-ccflags-y += -D MTK_WCN_BUILT_IN_DRIVER
