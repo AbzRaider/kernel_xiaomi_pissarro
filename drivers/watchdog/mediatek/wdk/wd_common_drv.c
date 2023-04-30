@@ -581,8 +581,10 @@ static void kwdt_process_kick(int local_bit, int cpu,
 	if (ret >= 0)
 		pr_info("%s", msg_buf);
 
+#ifdef CONFIG_MTK_TICK_BROADCAST_AEE_DUMP
 	if (dump_timeout)
 		dump_wdk_bind_info();
+#endif
 
 #ifdef CONFIG_LOCAL_WDT
 	printk_deferred("[wdk] cpu:%d, kick local wdt,RT[%lld]\n",
