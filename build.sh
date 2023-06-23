@@ -1,58 +1,50 @@
 #!/bin/bash
-#
-# Compile script for QuicksilveR kernel
-# Copyright (C) 2020-2021 Adithya R.
 
-SECONDS=0 # builtin bash timer
-ZIPNAME="HydrogenKernel-pissarro-$(date '+%Y%m%d-%H%M').zip"
-TC_DIR="$HOME/tc/proton-clang"
-WET="transfer"
-DEFCONFIG="pissarro_user_defconfig"
+function compile() 
+{
 
-export PATH="$TC_DIR/bin:$PATH"
+source ~/.bashrc && source ~/.profile
+export LC_ALL=C && export USE_CCACHE=1
+ccache -M 100G
+export ARCH=arm64
+export KBUILD_BUILD_HOST=MARKxDEVS
+export KBUILD_BUILD_USER="AbzRaider"
+git clone --depth=1  https://gitlab.com/LeCmnGend/proton-clang.git -b clang-13  clang
 
-if ! [ -d "$TC_DIR" ]; then
-echo "Proton clang not found! Cloning to $TC_DIR..."
-if ! git clone -q --depth=1 --single-branch https://github.com/kdrag0n/proton-clang $TC_DIR; then
-echo "Cloning failed! Aborting..."
-exit 1
-fi
-fi
 
-if ! [ -a "$WET" ]; then
-echo "Setting up wetransfer"
-if ! curl -sL https://git.io/file-transfer | sh; then
-echo "Unable to setup wetransfer ..... aborting"
-exit 1
-fi
+
+ if ! [ -d "out" ]; then
+echo "Kernel OUT Directory Not Found . Making Again"
+mkdir out
 fi
 
-if [[ $1 = "-c" || $1 = "--clean" ]]; then
-rm -rf out
-fi
+make O=out ARCH=arm64 RM6785_defconfig
 
-mkdir -p out
-make O=out ARCH=arm64 $DEFCONFIG
+PATH="${PWD}/clang/bin:${PATH}:${PWD}/clang/bin:${PATH}:${PWD}/clang/bin:${PATH}" \
+make -j$(nproc --all) O=out \
+                      ARCH=arm64 \
+                      CC="clang" \
+                      CLANG_TRIPLE=aarch64-linux-gnu- \
+                      CROSS_COMPILE="${PWD}/clang/bin/aarch64-linux-gnu-" \
+                      CROSS_COMPILE_ARM32="${PWD}/clang/bin/arm-linux-gnueabi-" \
+		      LD=ld.lld \
+                      STRIP=llvm-strip \
+                      AS=llvm-as \
+		      AR=llvm-ar \
+		      NM=llvm-nm \
+		      OBJCOPY=llvm-objcopy \
+   		      OBJDUMP=llvm-objdump \
+                      CONFIG_NO_ERROR_ON_MISMATCH=y 2>&1 | tee error.log 
+}
 
-echo -e "\nStarting compilation...\n"
-make -j$(nproc --all) O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip CROSS_COMPILE=aarch64-linux-gnu- Image.gz
-
-if [ -f "out/arch/arm64/boot/Image.gz" ]; then
-echo -e "\nKernel compiled succesfully! Zipping up...\n"
-if ! git clone https://github.com/rio004/AnyKernel3; then
-echo -e "\nCloning AnyKernel3 repo failed! Aborting..."
-exit 1
-fi
-cp out/arch/arm64/boot/Image.gz AnyKernel3
-rm -f *zip
-cd AnyKernel3
-rm -rf out/arch/arm64/boot
-zip -r9 "../$ZIPNAME" * -x '*.git*' README.md *placeholder
-cd ..
-rm -rf AnyKernel3
-echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
-echo "Zip: $ZIPNAME"
-./transfer wet $ZIPNAME; echo
-else
-echo -e "\nCompilation failed!"
-fi
+function zupload()
+{
+rm -rf AnyKernel	
+git clone --depth=1 https://github.com/AbzRaider/AnyKernel33 -b pissarro AnyKernel
+cp out/arch/arm64/boot/Image.gz-dtb AnyKernel
+cd AnyKernel
+zip -r9 Test-OSS-KERNEL-PISSARRO-R.zip *
+curl --upload-file "Test-OSS-KERNEL-PISSARRO-R.zip" https://free.keep.sh
+}
+compile
+zupload
