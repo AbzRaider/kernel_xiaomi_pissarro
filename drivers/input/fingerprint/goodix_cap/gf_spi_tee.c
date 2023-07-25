@@ -806,10 +806,8 @@ static irqreturn_t gf_irq(int irq, void *handle)
 static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct gf_device *gf_dev = NULL;
-	struct gf_key gf_key;
 	gf_nav_event_t nav_event = GF_NAV_NONE;
 	uint32_t nav_input = 0;
-	uint32_t key_input = 0;
 #ifdef SUPPORT_REE_SPI
 #ifdef SUPPORT_REE_OSWEGO
 	struct gf_ioc_transfer ioc;
@@ -978,39 +976,7 @@ static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		gf_hw_power_enable(gf_dev, 0);
 		break;
 
-	case GF_IOC_INPUT_KEY_EVENT:
-		if (copy_from_user
-		    (&gf_key, (struct gf_key *)arg, sizeof(struct gf_key))) {
-			gf_debug(ERR_LOG,
-				 "Failed to copy input key event from user to kernel\n");
-			retval = -EFAULT;
-			break;
-		}
-
-		
-		if (GF_KEY_POWER == gf_key.key) {
-			key_input = GF_KEY_INPUT_POWER;
-		} else if (GF_KEY_CAMERA == gf_key.key) {
-			key_input = GF_KEY_INPUT_CAMERA;
-		} else {
-			/* add special key define */
-			key_input = gf_key.key;
-		}
-		gf_debug(INFO_LOG,
-			 "%s: received key event[%d], key=%d, value=%d\n",
-			 __func__, key_input, gf_key.key, gf_key.value);
-
-		if ((GF_KEY_POWER == gf_key.key || GF_KEY_CAMERA == gf_key.key)
-		    && (gf_key.value == 1)) {
-			input_report_key(gf_dev->input, key_input, 1);
-			input_sync(gf_dev->input);
-			input_report_key(gf_dev->input, key_input, 0);
-			input_sync(gf_dev->input);
-		}
-
-		
-		break;
-
+	
 	case GF_IOC_NAV_EVENT:
 		gf_debug(ERR_LOG, "nav event");
 		if (copy_from_user
@@ -2389,26 +2355,14 @@ static int gf_probe(struct spi_device *spi)
 	}
 
 	__set_bit(EV_KEY, gf_dev->input->evbit);
-<<<<<<< HEAD
-	__set_bit(GF_KEY_INPUT_HOME, gf_dev->input->keybit);
-	__set_bit(GF_KEY_DOUBLE_CLICK, gf_dev->input->keybit);
-=======
->>>>>>> 398a8d9d8f02 (goodix_cap: Stop reporting GF_KEY_HOME to userspace)
-
-	__set_bit(GF_KEY_INPUT_MENU, gf_dev->input->keybit);
-	__set_bit(GF_KEY_INPUT_BACK, gf_dev->input->keybit);
-	__set_bit(GF_KEY_INPUT_POWER, gf_dev->input->keybit);
-
 	__set_bit(GF_NAV_INPUT_UP, gf_dev->input->keybit);
 	__set_bit(GF_NAV_INPUT_DOWN, gf_dev->input->keybit);
 	__set_bit(GF_NAV_INPUT_RIGHT, gf_dev->input->keybit);
 	__set_bit(GF_NAV_INPUT_LEFT, gf_dev->input->keybit);
-	__set_bit(GF_KEY_INPUT_CAMERA, gf_dev->input->keybit);
 	__set_bit(GF_NAV_INPUT_CLICK, gf_dev->input->keybit);
 	__set_bit(GF_NAV_INPUT_DOUBLE_CLICK, gf_dev->input->keybit);
 	__set_bit(GF_NAV_INPUT_LONG_PRESS, gf_dev->input->keybit);
 	__set_bit(GF_NAV_INPUT_HEAVY, gf_dev->input->keybit);
-	//__set_bit(GF_KEY_INPUT_KPENTER, gf_dev->input->keybit);
 
 	gf_dev->input->name = GF_INPUT_NAME;
 	gf_dev->input->id.vendor = 0x0666;
