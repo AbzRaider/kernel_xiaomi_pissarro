@@ -63,10 +63,10 @@ EXPORT_SYMBOL(ged_kpi_PushAppSelfFcFp_fbt);
 
 #define GED_KPI_MSEC_DIVIDER 1000000
 #define GED_KPI_SEC_DIVIDER 1000000000
-#define GED_KPI_MAX_FPS 60
+#define GED_KPI_MAX_FPS 120
 /* set default margin to be distinct from FPSGO(0 or 3) */
-#define GED_KPI_DEFAULT_FPS_MARGIN 4
-#define GED_KPI_CPU_MAX_OPP 0
+#define GED_KPI_DEFAULT_FPS_MARGIN 3
+#define GED_KPI_CPU_MAX_OPP 4
 
 
 #define GED_TIMESTAMP_TYPE_D    0x1
@@ -310,7 +310,7 @@ static int gx_boost_on;
 #ifdef GED_KPI_CPU_BOOST
 static int gx_force_cpu_boost;
 static int gx_top_app_pid;
-static int enable_game_self_frc_detect;
+static int enable_game_self_frc_detect=1;
 #endif /* GED_KPI_CPU_BOOST */
 static unsigned int gx_fps;
 static unsigned int gx_cpu_time_avg;
@@ -326,8 +326,8 @@ static int boost_accum_cpu;
 static long target_t_cpu_remained = 16000000;
 /* static long target_t_cpu_remained_min = 8300000; */
 /* default 0.5 vsync period */
-static int cpu_boost_policy;
-static int boost_extra;
+static int cpu_boost_policy=-1;
+static int boost_extra=0;
 static int boost_amp;
 static int deboost_reduce;
 static int boost_upper_bound = 100;
