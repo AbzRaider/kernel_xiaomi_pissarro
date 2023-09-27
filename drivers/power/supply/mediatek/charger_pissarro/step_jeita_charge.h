@@ -9,7 +9,7 @@
 #define TYPEC_BURN_TEMP		750
 #define TYPEC_BURN_HYST		100
 
-#define MAX_THERMAL_FCC		12400
+#define MAX_THERMAL_FCC		67000
 #define MIN_THERMAL_FCC		200
 
 struct step_jeita_cfg0 {
