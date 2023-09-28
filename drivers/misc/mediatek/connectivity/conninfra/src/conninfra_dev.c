@@ -185,8 +185,8 @@ struct wmt_platform_bridge g_plat_bridge = {
 #else
 	.conninfra_reg_is_bus_hang_cb = conninfra_conn_is_bus_hang,
 #endif
-	.debug_write_cb = conninfra_dbg_write,
-	.debug_read_cb = conninfra_dbg_read,
+	//.debug_write_cb = conninfra_dbg_write,
+	//.debug_read_cb = conninfra_dbg_read,
 };
 
 
