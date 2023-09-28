@@ -247,7 +247,7 @@ static struct GED_KPI_MEOW_DVFS_FREQ_PRED *g_psMEOW;
 
 /* static int display_fps = GED_KPI_MAX_FPS; */
 static int is_game_control_frame_rate;
-static int target_fps_4_main_head = 60;
+static int target_fps_4_main_head = 90;
 static long long vsync_period = GED_KPI_SEC_DIVIDER / GED_KPI_MAX_FPS;
 static GED_LOG_BUF_HANDLE ghLogBuf_KPI;
 static struct workqueue_struct *g_psWorkQueue;
@@ -309,7 +309,7 @@ static unsigned int g_frame_count;
 static int gx_game_mode;
 static int gx_boost_on;
 #ifdef GED_KPI_CPU_BOOST
-static int gx_force_cpu_boost;
+static int gx_force_cpu_boost=1;
 static int gx_top_app_pid;
 static int enable_game_self_frc_detect;
 #endif /* GED_KPI_CPU_BOOST */
@@ -324,7 +324,7 @@ static unsigned int gx_gpu_freq_avg;
 #ifdef GED_KPI_CPU_BOOST
 static int boost_accum_cpu;
 /* for non-GED_KPI_MAX_FPS-FPS cases */
-static long target_t_cpu_remained = 16000000;
+static long target_t_cpu_remained = 15000000;
 /* static long target_t_cpu_remained_min = 8300000; */
 /* default 0.5 vsync period */
 static int cpu_boost_policy;
