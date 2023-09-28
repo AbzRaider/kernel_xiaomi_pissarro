@@ -60,6 +60,10 @@ export MTK_WLAN_SERVICE=yes
 export CONNAC_VER=2_0
 export CFG_BUILD_CONNAC2=true
 
+export MTK_PLATFORM_WMT=$(MTK_PLATFORM)
+export TARGET_BOARD_PLATFORM_WMT=$(patsubst CONSYS_%,mt%,$(subst ",,$(CONFIG_MTK_COMBO_CHIP)))
+
+
 # Do build-in for xxx.c checking
 subdir-ccflags-y += -D MTK_WCN_REMOVE_KERNEL_MODULE
 subdir-ccflags-y += -D MTK_WCN_BUILT_IN_DRIVER
