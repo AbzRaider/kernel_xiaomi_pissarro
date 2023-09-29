@@ -1,5 +1,9 @@
-subdir-ccflags-y += -Werror
+subdir-ccflags-y += -Wno-error
 
+ccflags-y += \
+        -Wno-unused-variable \
+        -Wno-unused-function \
+	-Wno-visibility
 mediatek-drm-y := mtk_drm_drv.o \
 		  mtk_disp_color.o \
 		  mtk_disp_ccorr.o \
