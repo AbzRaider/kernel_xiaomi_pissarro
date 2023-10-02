@@ -80,7 +80,7 @@ enum max77932_ovp {
 	MAX77932_OVP_11_0V,
 };
 
-product_name = PISSARRO;
+int product_name = PISSARRO;
 static int log_level = 2;
 
 #define max_err(fmt, ...)							\
