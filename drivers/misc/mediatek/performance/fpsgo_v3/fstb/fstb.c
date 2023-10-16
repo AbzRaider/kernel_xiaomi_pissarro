@@ -62,22 +62,22 @@
 
 
 static struct kobject *fstb_kobj;
-static int max_fps_limit = DEFAULT_DFPS;
+static int max_fps_limit = 120;
 static int dfps_ceiling = DEFAULT_DFPS;
 static int min_fps_limit = CFG_MIN_FPS_LIMIT;
 static int fps_error_threshold = 10;
-static int QUANTILE = 50;
+static int QUANTILE = 60;
 static long long FRAME_TIME_WINDOW_SIZE_US = 1000000;
 static long long ADJUST_INTERVAL_US = 1000000;
 static int margin_mode;
 static int margin_mode_gpu;
 static int margin_mode_dbnc_a = 9;
-static int margin_mode_dbnc_b = 1;
+static int margin_mode_dbnc_b = 3;
 static int margin_mode_gpu_dbnc_a = 9;
-static int margin_mode_gpu_dbnc_b = 1;
+static int margin_mode_gpu_dbnc_b = 3;
 static int JUMP_CHECK_NUM = DEFAULT_JUMP_CHECK_NUM;
 static int JUMP_CHECK_Q_PCT = DEFAULT_JUMP_CHECK_Q_PCT;
-static int adopt_low_fps = 1;
+static int adopt_low_fps = 0;
 static int condition_get_fps;
 
 DECLARE_WAIT_QUEUE_HEAD(queue);

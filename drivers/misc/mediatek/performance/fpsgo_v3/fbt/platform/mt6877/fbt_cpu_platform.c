@@ -161,7 +161,7 @@ int fbt_get_L_min_ceiling(void)
 
 int fbt_get_default_boost_ta(void)
 {
-	return 0;
+	return 1;
 }
 
 int fbt_get_default_adj_loading(void)

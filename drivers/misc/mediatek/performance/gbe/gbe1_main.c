@@ -52,7 +52,7 @@ struct GBE_NOTIFIER_PUSH_TAG {
 static DEFINE_MUTEX(gbe_list_lock);
 static DEFINE_MUTEX(gbe_enable1_lock);
 static struct workqueue_struct *g_psNotifyWorkQueue;
-static int gbe_enable;
+static int gbe_enable=1;
 
 /* TODO: event register & dispatch */
 int gbe_is_enable(void)

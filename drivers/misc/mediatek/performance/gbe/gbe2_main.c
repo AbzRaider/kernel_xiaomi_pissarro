@@ -45,7 +45,7 @@
 
 static HLIST_HEAD(gbe_boost_units);
 static DEFINE_MUTEX(gbe_lock);
-static int gbe_enable;
+static int gbe_enable=1;
 static int fg_pid;
 static int TIMER1_MS = DEFAULT_TIMER1_MS;
 static int TIMER2_MS = DEFAULT_TIMER2_MS;

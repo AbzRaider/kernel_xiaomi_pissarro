@@ -324,20 +324,20 @@ static DEFINE_MUTEX(blc_mlock);
 static struct list_head loading_list;
 static struct list_head blc_list;
 
-static int fbt_enable;
+static int fbt_enable=1;
 static int fbt_idleprefer_enable;
 static int bypass_flag;
 static int set_idleprefer;
 static int suppress_ceiling;
-static int boost_ta;
-static int down_throttle_ns;
-static int fbt_down_throttle_enable;
-static int sync_flag;
+static int boost_ta=1;
+static int down_throttle_ns=-1;
+static int fbt_down_throttle_enable=-1;
+static int sync_flag=1;
 static int fbt_sync_flag_enable;
 static int set_cap_margin;
 static int fbt_cap_margin_enable;
 static int ultra_rescue;
-static int loading_policy;
+static int loading_policy=100;
 static int llf_task_policy;
 
 static int cluster_num;
