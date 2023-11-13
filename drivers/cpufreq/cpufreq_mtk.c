@@ -43,7 +43,7 @@ struct cpufreq_mtk_topo_config {
     unsigned int big_cpu_start;
 };
 
-#if defined(CONFIG_MACH_MT6785)
+#if defined(CONFIG_MACH_MT6785) || defined (CONFIG_MACH_MT6877)
 static const struct cpufreq_mtk_topo_config topology = {
     .ltl_cpu_start			= 0,
     .big_cpu_start			= 6,
