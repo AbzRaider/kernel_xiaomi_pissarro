@@ -11,6 +11,8 @@
  * GNU General Public License for more details.
  */
 
+#define DISABLE_PBM_FEATURE 1
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
