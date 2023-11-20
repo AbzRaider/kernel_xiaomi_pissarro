@@ -1,7 +1,4 @@
-subdir-ccflags-y += -Wno-error
-ccflags-y += \
-        -Wno-unused-variable \
-        -Wno-unused-function 
+subdir-ccflags-y += -Wall
 obj-$(CONFIG_TCPC_MT6360)		+= tcpc_mt6360.o
 obj-$(CONFIG_TCPC_MT6362)		+= tcpc_mt6362.o
 obj-$(CONFIG_TCPC_MT6370)		+= tcpc_mt6370.o
