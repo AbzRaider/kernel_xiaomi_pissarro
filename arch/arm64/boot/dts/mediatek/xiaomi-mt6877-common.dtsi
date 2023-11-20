@@ -323,6 +323,8 @@
 
 /* Audio Start */
 &i2c7 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	status = "okay";
 	cs35l41_bottom: cs35l41@40 {
 		compatible = "cirrus,cs35l41";

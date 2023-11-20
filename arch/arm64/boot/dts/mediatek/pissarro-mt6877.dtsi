@@ -5,6 +5,8 @@ this file is only for attribution of pissarro
 
 
 &odm {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	thermal_message: thermal-message {
 		board-sensor = "VIRTUAL-SENSOR";
 	};
@@ -12,6 +14,8 @@ this file is only for attribution of pissarro
 
 &i2c0 {
 	clock-frequency = <400000>;
+	#address-cells = <1>;
+	#size-cells = <0>;
 
 	gt9896@5d {
 		compatible = "goodix,gt9896";
@@ -63,6 +67,8 @@ this file is only for attribution of pissarro
 };
 
 &pio {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	ctp_pins_default_gt9896: eintdefault {
 	};
 	ctp_gt9896_ts_int_active: int_active {
@@ -104,6 +110,8 @@ this file is only for attribution of pissarro
 };
 
 &pio {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	// ln8000-master
 	ln8000_master_int_default: ln8000_master_int_default {
 		pins_cmd_dat {
@@ -208,6 +216,8 @@ this file is only for attribution of pissarro
 };
 
 &mtkfb {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	pinctrl-names = "lcm_rst_out1_gpio", "lcm_rst_out0_gpio",
 		"mode_te_te", "err_flag_init";
 	pinctrl-0 = <&mtkfb_pins_lcm_rst_out1_gpio>;
@@ -218,6 +228,8 @@ this file is only for attribution of pissarro
 };
 
 &dispsys_config {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	pinctrl-names =
 		"lcm_rst_out1_gpio", "lcm_rst_out0_gpio",
 		"mode_te_te", "err_flag_init";
@@ -268,11 +280,15 @@ this file is only for attribution of pissarro
 };
 
 &bat_gm30 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	DISABLE_MTKBATTERY = <(1)>;
 	use-ti-gauge;
 };
 
 &i2c7 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	sc8551_i2c7@66 {
 		compatible = "sc8551_i2c7";
 		reg = <0x66>;
@@ -329,6 +345,8 @@ this file is only for attribution of pissarro
 };
 
 &i2c9 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	xmusb350@35 {
 		compatible = "xmusb350";
 		reg = <0x35>;
@@ -370,6 +388,8 @@ this file is only for attribution of pissarro
 };
 
 &i2c11 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	clock-frequency = <400000>;
 
 	mp2762@5c {
@@ -477,6 +497,8 @@ this file is only for attribution of pissarro
 };
 
 &pissarro_charger {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	algorithm_name = "SwitchCharging2";
 
 	vbus_control_gpio = <&pio 156 0x0>;
@@ -526,6 +548,8 @@ this file is only for attribution of pissarro
 };
 
 &pissarropro_charger {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	algorithm_name = "SwitchCharging2";
 
 	fv = <8900>;
@@ -588,6 +612,8 @@ this file is only for attribution of pissarro
 };
 
 &pissarro_qc_cp_manager {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	compatible = "pissarro_qc_cp_manager";
 	max_vbus = <12000>;
 	max_ibus_qc3_18w = <2200>;
@@ -609,6 +635,8 @@ this file is only for attribution of pissarro
 };
 
 &pissarro_pd_cp_manager {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	compatible = "pissarro_pd_cp_manager";
 	fv = <4450>;
 	fv_ffc = <4480>;
@@ -634,6 +662,8 @@ this file is only for attribution of pissarro
 };
 
 &pissarropro_pd_cp_manager {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	compatible = "pissarropro_pd_cp_manager";
 	fv = <8900>;
 	fv_ffc = <8960>;
@@ -659,6 +689,8 @@ this file is only for attribution of pissarro
 };
 
 &usb0phy {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	usb_phy_tuning {
 		compatible = "mediatek,phy_tuning";
 		u2_vrt_ref  = <6>;
@@ -670,6 +702,8 @@ this file is only for attribution of pissarro
 };
 /* AW8697 Haptic start */
 &pio {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	awinic_reset_low: awinic_reset_reset {
 		pins_cmd_dat {
 			pinmux = <PINMUX_GPIO139__FUNC_GPIO139>;
@@ -697,6 +731,8 @@ this file is only for attribution of pissarro
 };
 
 &i2c7 {
+	#address-cells = <1>;
+	#size-cells = <0>;
         clock-frequency = <400000>;
 	status = "ok";
         aw8697_haptic@5a {
