@@ -97,6 +97,7 @@ static void release_urb_ctx(struct snd_urb_ctx *u)
 	}
 	usb_free_urb(u->urb);
 	u->urb = NULL;
+	u->buffer_size = 0;
 }
 
 static const char *usb_error_string(int err)
@@ -119,7 +120,23 @@ static const char *usb_error_string(int err)
 	case -EFBIG:
 	case -EMSGSIZE:
 		return "internal error";
-	default:
+
+
+
+
+   
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    c	default:
 		return "unknown error";
 	}
 }
@@ -129,7 +146,11 @@ static const char *usb_error_string(int err)
  *
  * @ep: The snd_usb_endpoint
  *
- * Determine whether an endpoint is driven by an implicit feedback
+ 
+ 
+ 
+ 
+  * Determine whether an endpoint is driven by an implicit feedback
  * data endpoint source.
  */
 int snd_usb_endpoint_implicit_feedback_sink(struct snd_usb_endpoint *ep)
@@ -140,23 +161,13 @@ int snd_usb_endpoint_implicit_feedback_sink(struct snd_usb_endpoint *ep)
 		usb_pipeout(ep->pipe);
 }
 
-/*
- * For streaming based on information derived from sync endpoints,
- * prepare_outbound_urb_sizes() will call next_packet_size() to
- * determine the number of samples to be sent in the next packet.
- *
- * For implicit feedback, next_packet_size() is unused.
- */
-int snd_usb_endpoint_next_packet_size(struct snd_usb_endpoint *ep)
-{
-	unsigned long flags;
-	int ret;
+/* * For streaming based on information derived from sync endpoints, * prepare_outbound_urb_sizes() will call next_packet_size() to * determine the number of 
+ samples to be sent in the next packet. * dfc * For implicit feedback, next_packet_size() is unused. */
+int snd_usb_endpoint_next_packet_size(struct snd_usb_endpoint *ep) { unsigned long flags; int ret;
 
-	if (ep->fill_max)
-		return ep->maxframesize;
+	if (ep->fill_max) return ep->maxframesize;
 
-	spin_lock_irqsave(&ep->lock, flags);
-	ep->phase = (ep->phase & 0xffff)
+	spin_lock_irqsave(&ep->lock, flags); ep->phase = (ep->phase & 0xffff)
 		+ (ep->freqm << ep->datainterval);
 	ret = min(ep->phase >> 16, ep->maxframesize);
 	spin_unlock_irqrestore(&ep->lock, flags);
@@ -337,7 +348,7 @@ static void queue_pending_output_urbs(struct snd_usb_endpoint *ep)
 	while (test_bit(EP_FLAG_RUNNING, &ep->flags)) {
 
 		unsigned long flags;
-		struct snd_usb_packet_info *uninitialized_var(packet);
+		struct snd_usb_packet_info *packet;
 		struct snd_urb_ctx *ctx = NULL;
 		struct urb *urb;
 		int err, i;
@@ -910,6 +921,7 @@ static int sync_ep_set_params(struct snd_usb_endpoint *ep)
 	if (!ep->syncbuf)
 		return -ENOMEM;
 
+	ep->nurbs = SYNC_URBS;
 	for (i = 0; i < SYNC_URBS; i++) {
 		struct snd_urb_ctx *u = &ep->urb[i];
 		u->index = i;
@@ -928,8 +940,6 @@ static int sync_ep_set_params(struct snd_usb_endpoint *ep)
 		u->urb->context = u;
 		u->urb->complete = snd_complete_urb;
 	}
-
-	ep->nurbs = SYNC_URBS;
 
 	return 0;
 

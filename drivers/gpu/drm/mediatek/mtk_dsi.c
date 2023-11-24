@@ -1712,6 +1712,7 @@ static void mtk_dsi_poweroff(struct mtk_dsi *dsi)
 			__func__, dsi->clk_refcnt);
 		return;
 	}
+
 	clk_disable_unprepare(dsi->engine_clk);
 	clk_disable_unprepare(dsi->digital_clk);
 
