@@ -1120,7 +1120,8 @@ u8 *rndis_get_next_response(struct rndis_params *params, u32 *length)
 	if (!length) return NULL;
 
 	spin_lock(&params->resp_lock);
-	list_for_each_entry_safe(r, n, &params->resp_queue, list) {
+	list_for_each_safe(act, tmp, &(params->resp_queue)) {
+		r = list_entry(act, rndis_resp_t, list);
 		if (!r->send) {
 			r->send = 1;
 			*length = r->length;
