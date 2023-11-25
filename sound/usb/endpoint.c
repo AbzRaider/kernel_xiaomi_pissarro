@@ -120,23 +120,7 @@ static const char *usb_error_string(int err)
 	case -EFBIG:
 	case -EMSGSIZE:
 		return "internal error";
-
-
-
-
-   
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    c	default:
+	default:
 		return "unknown error";
 	}
 }
