@@ -134,13 +134,8 @@ config MICROTRUST_UNITTEST_SUPPORT
 config MICROTRUST_TZ_LOG
 	bool "Enable Microtrust TrustZone logger"
 	depends on MICROTRUST_TEE_SUPPORT
-<<<<<<< HEAD
-	default y
-	help
-=======
 	default n
 	---help---
->>>>>>> 1c2c6d6ad086 (drivers: mtk-teei: Disable teei trustzone logging)
 	  Enable Microtrust TrustZone logger to dump TEE logs in kernel log buffer.
 	  This driver will read out log buffer and direct to console each
 	  time a smc call is returned from secure world.
