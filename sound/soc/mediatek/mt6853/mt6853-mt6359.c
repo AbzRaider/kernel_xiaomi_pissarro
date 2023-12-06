@@ -3,6 +3,7 @@
  *  mt6853-mt6359.c  --  mt6853 mt6359 ALSA SoC machine driver
  *
  *  Copyright (c) 2019 MediaTek Inc.
+ *  Copyright (C) 2021 XiaoMi, Inc.
  *  Author: Shane Chien <shane.chien@mediatek.com>
  */
 
@@ -31,7 +32,8 @@
 static const char *const mt6853_spk_type_str[] = {MTK_SPK_NOT_SMARTPA_STR,
 						  MTK_SPK_RICHTEK_RT5509_STR,
 						  MTK_SPK_MEDIATEK_MT6660_STR,
-						  MTK_SPK_NXP_TFA98XX_STR
+						  MTK_SPK_NXP_TFA98XX_STR,
+						  MTK_SPK_MEDIATEK_RT5512_STR
 						  };
 static const char *const
 	mt6853_spk_i2s_type_str[] = {MTK_SPK_I2S_0_STR,

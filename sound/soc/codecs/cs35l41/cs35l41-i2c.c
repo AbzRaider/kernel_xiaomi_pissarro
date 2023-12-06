@@ -2,6 +2,7 @@
  * cs35l41-i2c.c -- CS35l41 I2C driver
  *
  * Copyright 2017 Cirrus Logic, Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * Author:	David Rhodes	<david.rhodes@cirrus.com>
  *
@@ -59,7 +60,7 @@ int cs35l41_i2c_probe(struct i2c_client *client,
 	const struct regmap_config *regmap_config = &cs35l41_regmap_i2c;
 	int ret;
 
-	printk(KERN_DEBUG "[CSPL] Enter function %s\n", __func__);
+	printk(KERN_INFO "[CSPL] Enter function %s\n", __func__);
 
 	cs35l41 = devm_kzalloc(dev, sizeof(struct cs35l41_private), GFP_KERNEL);
 
@@ -82,7 +83,7 @@ int cs35l41_i2c_probe(struct i2c_client *client,
 	}
 	/*Audio End*/
 
-	printk(KERN_DEBUG "[CSPL] irq_gpio[%d],addr[0x%x],iname[%s]\n",
+	printk(KERN_INFO "[CSPL] irq_gpio[%d],addr[0x%x],iname[%s]\n",
 				cs35l41->irq_gpio, client->addr, client->name);
 
 	i2c_set_clientdata(client, cs35l41);

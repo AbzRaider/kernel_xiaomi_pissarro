@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (C) 2018 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #ifndef _MTK_SP_SPK_AMP_H
@@ -14,18 +15,6 @@ struct mtk_spk_i2c_ctrl {
 	const char *stream_name;
 	const char *codec_dai_name;
 	const char *codec_name;
-#ifdef CONFIG_SND_SOC_CS35L41_ARES
-	struct snd_soc_dai_link_component *codecs;
-	unsigned int num_codecs;
-#endif
-#ifdef CONFIG_SND_SOC_CS35L41_CHOPIN
-	struct snd_soc_dai_link_component *codecs;
-	unsigned int num_codecs;
-#endif
-#ifdef CONFIG_SND_SOC_CS35L41_AGATE
-	struct snd_soc_dai_link_component *codecs;
-	unsigned int num_codecs;
-#endif
 };
 
 #define MTK_SPK_NOT_SMARTPA_STR "MTK_SPK_NOT_SMARTPA"
@@ -51,19 +40,8 @@ enum mtk_spk_type {
 	MTK_SPK_RICHTEK_RT5509,
 	MTK_SPK_MEDIATEK_MT6660,
 	MTK_SPK_NXP_TFA98XX,
+	MTK_SPK_CS_CS35L41,
 	MTK_SPK_MEDIATEK_RT5512,
-#ifdef CONFIG_SND_SOC_CS35L41_ARES
-	MTK_SPK_CS_CS35L41,
-#endif
-#ifdef CONFIG_SND_SOC_CS35L41_CHOPIN
-	MTK_SPK_CS_CS35L41,
-#endif
-#ifdef CONFIG_SND_SOC_CS35L41_AGATE
-	MTK_SPK_CS_CS35L41,
-#endif
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO
-	MTK_SPK_CS_CS35L41,
-#endif
 	MTK_SPK_TYPE_NUM
 };
 

@@ -88,7 +88,10 @@ unsigned int word_size_align(unsigned int in_size)
 {
 	unsigned int align_size;
 
-	/* MTK memif access need 16 bytes alignment */
+	/* sram is device memory,need word size align,
+	 * 8 byte for 64 bit platform
+	 * [3:0] = 4'h0 for the convenience of the hardware implementation
+	 */
 	align_size = in_size & 0xFFFFFFF0;
 	return align_size;
 }
@@ -103,49 +106,25 @@ static snd_pcm_uframes_t mtk_afe_pcm_pointer
 	struct regmap *regmap = afe->regmap;
 	struct device *dev = afe->dev;
 	int reg_ofs_base = memif_data->reg_ofs_base;
-	int reg_ofs_base_msb = memif_data->reg_ofs_base_msb;
 	int reg_ofs_cur = memif_data->reg_ofs_cur;
-	int reg_ofs_cur_msb = memif_data->reg_ofs_cur_msb;
 	unsigned int hw_ptr = 0, hw_base = 0;
-	unsigned int hw_ptr_msb = 0, hw_base_msb = 0;
-	u64 hw_ptr_64 =0, hw_base_64 = 0;
 	int ret, pcm_ptr_bytes;
 
 	ret = regmap_read(regmap, reg_ofs_cur, &hw_ptr);
-	if (ret) {
-		dev_err(dev, "%s regmap_read hw_ptr err, ret = %d\n", __func__, ret);
-		pcm_ptr_bytes = 0;
-		goto POINTER_RETURN_FRAMES;
-	}
-
-	ret = regmap_read(regmap, reg_ofs_cur_msb, &hw_ptr_msb);
-	if (ret || (hw_ptr == 0 && hw_ptr_msb == 0)) {
+	if (ret || hw_ptr == 0) {
 		dev_err(dev, "%s hw_ptr err\n", __func__);
 		pcm_ptr_bytes = 0;
 		goto POINTER_RETURN_FRAMES;
 	}
-	hw_ptr_64 = hw_ptr_msb;
-	hw_ptr_64 <<= 32;
-	hw_ptr_64 |= hw_ptr;
 
 	ret = regmap_read(regmap, reg_ofs_base, &hw_base);
-	if (ret) {
-		dev_err(dev, "%s regmap_read hw_base err, ret = %d\n", __func__, ret);
+	if (ret || hw_base == 0) {
+		dev_err(dev, "%s hw_ptr err\n", __func__);
 		pcm_ptr_bytes = 0;
 		goto POINTER_RETURN_FRAMES;
 	}
 
-	ret = regmap_read(regmap, reg_ofs_base_msb, &hw_base_msb);
-	if (ret || (hw_base == 0 && hw_base_msb == 0)) {
-		dev_err(dev, "%s hw_base err\n", __func__);
-		pcm_ptr_bytes = 0;
-		goto POINTER_RETURN_FRAMES;
-	}
-	hw_base_64 = hw_base_msb;
-	hw_base_64 <<= 32;
-	hw_base_64 |= hw_base;
-
-	pcm_ptr_bytes = hw_ptr_64 - hw_base_64;
+	pcm_ptr_bytes = hw_ptr - hw_base;
 
 POINTER_RETURN_FRAMES:
 	pcm_ptr_bytes = word_size_align(pcm_ptr_bytes);

@@ -14,16 +14,14 @@
 
 #include "../common/mtk-afe-fe-dai.h"
 #include "../common/mtk-afe-platform-driver.h"
+#if defined(CONFIG_MTK_VOW_BARGE_IN_SUPPORT)
 #include "../scp_vow/mtk-scp-vow-common.h"
+#endif
 
 #include "mt6885-afe-common.h"
 
 #define SGEN_MUTE_CH1_KCONTROL_NAME "Audio_SineGen_Mute_Ch1"
 #define SGEN_MUTE_CH2_KCONTROL_NAME "Audio_SineGen_Mute_Ch2"
-
-#if defined(CONFIG_MTK_ULTRASND_PROXIMITY)
-extern unsigned int elliptic_add_platform_controls(void *platform);
-#endif
 
 static const char * const mt6885_sgen_mode_str[] = {
 	"I0I1",   "I2",     "I3I4",   "I5I6",
@@ -2027,8 +2025,6 @@ static void *get_sph_property_by_name(struct mt6885_afe_private *afe_priv,
 		return &(afe_priv->speech_md_version);
 	else if (strcmp(name, "Speech_Cust_Param_Init") == 0)
 		return &(afe_priv->speech_cust_param_init);
-	else if (strcmp(name, "Speech_Dynamic_DL_Mute") == 0)
-		return &afe_priv->speech_dynamic_dl_mute;
 	else
 		return NULL;
 }
@@ -2123,30 +2119,26 @@ static const struct snd_kcontrol_new mt6885_afe_speech_controls[] = {
 	SOC_SINGLE_EXT("Speech_Cust_Param_Init",
 		       SND_SOC_NOPM, 0, 0x1, 0,
 		       speech_property_get, speech_property_set),
-	SOC_SINGLE_EXT("Speech_Dynamic_DL_Mute",
-		       SND_SOC_NOPM, 0, 0x1, 0,
-		       speech_property_get, speech_property_set),
 };
 
+#if defined(CONFIG_MTK_VOW_BARGE_IN_SUPPORT)
 /* VOW barge in control */
 static int mt6885_afe_vow_bargein_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-#if defined(CONFIG_MTK_VOW_SUPPORT)
 	struct snd_soc_component *cmpnt = snd_soc_kcontrol_component(kcontrol);
 	struct mtk_base_afe *afe = snd_soc_component_get_drvdata(cmpnt);
 	int id;
 
 	id = get_scp_vow_memif_id();
 	ucontrol->value.integer.value[0] = afe->memif[id].vow_bargein_enable;
-#endif
+
 	return 0;
 }
 
 static int mt6885_afe_vow_bargein_set(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-#if defined(CONFIG_MTK_VOW_SUPPORT)
 	struct snd_soc_component *cmpnt = snd_soc_kcontrol_component(kcontrol);
 	struct mtk_base_afe *afe = snd_soc_component_get_drvdata(cmpnt);
 	int id;
@@ -2157,7 +2149,7 @@ static int mt6885_afe_vow_bargein_set(struct snd_kcontrol *kcontrol,
 	dev_info(afe->dev, "%s(), %d\n", __func__, val);
 
 	afe->memif[id].vow_bargein_enable = (val > 0) ? true : false;
-#endif
+
 	return 0;
 }
 
@@ -2166,6 +2158,7 @@ static const struct snd_kcontrol_new mt6885_afe_bargein_controls[] = {
 		       mt6885_afe_vow_bargein_get,
 		       mt6885_afe_vow_bargein_set),
 };
+#endif
 
 int mt6885_add_misc_control(struct snd_soc_platform *platform)
 {
@@ -2187,12 +2180,10 @@ int mt6885_add_misc_control(struct snd_soc_platform *platform)
 				      mt6885_afe_speech_controls,
 				      ARRAY_SIZE(mt6885_afe_speech_controls));
 
+#if defined(CONFIG_MTK_VOW_BARGE_IN_SUPPORT)
 	snd_soc_add_platform_controls(platform,
 				      mt6885_afe_bargein_controls,
 				      ARRAY_SIZE(mt6885_afe_bargein_controls));
-	//for ellipitc mixer control
-#if defined(CONFIG_MTK_ULTRASND_PROXIMITY)
-	elliptic_add_platform_controls(platform);
 #endif
 
 	return 0;

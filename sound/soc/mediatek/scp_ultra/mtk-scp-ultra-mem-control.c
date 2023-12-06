@@ -1,26 +1,31 @@
 // SPDX-License-Identifier: GPL-2.0
 //
 // Copyright (C) 2018 MediaTek Inc.
+// Copyright (C) 2021 XiaoMi, Inc.
 
 #include "mtk-scp-ultra-mem-control.h"
 #include "mtk-scp-ultra-common.h"
 #include "mtk-base-afe.h"
 #include "mtk-base-scp-ultra.h"
 #include "mtk-afe-fe-dai.h"
+#include "audio_buf.h"
 #include <sound/soc.h>
 #include <linux/device.h>
 #include <linux/compat.h>
 #include <linux/io.h>
 #include "scp_helper.h"
 #include "scp_ipi.h"
+#include "audio_ipi_platform.h"
 #include "mtk-sram-manager.h"
+#include "mtk-scp-ultra-platform-mem-control.h"
 #include "audio_ultra_msg_id.h"
+#include "audio_buf.h"
 
 int mtk_scp_ultra_reserved_dram_init(void)
 {
 	struct mtk_base_scp_ultra *scp_ultra = get_scp_ultra_base();
-	struct audio_ultra_dram *ultra_resv_mem = &scp_ultra->ultra_reserve_dram;
-	struct audio_ultra_dram *dump_resv_mem =
+	struct audio_dsp_dram *ultra_resv_mem = &scp_ultra->ultra_reserve_dram;
+	struct audio_dsp_dram *dump_resv_mem =
 		&scp_ultra->ultra_dump.dump_resv_mem;
 
 	ultra_resv_mem->phy_addr =
@@ -118,17 +123,17 @@ int mtk_scp_ultra_allocate_mem(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct mtk_base_scp_ultra *scp_ultra = get_scp_ultra_base();
 	struct mtk_base_scp_ultra_mem *ultra_mem = &scp_ultra->ultra_mem;
-	struct audio_ultra_dram *ultra_resv_mem = &scp_ultra->ultra_reserve_dram;
+	struct audio_dsp_dram *ultra_resv_mem = &scp_ultra->ultra_reserve_dram;
 	int id = rtd->cpu_dai->id;
 	struct mtk_base_afe_memif *memif = &afe->memif[id];
 	struct snd_dma_buffer *ultra_dma_buf = NULL;
 	int buf_offset;
 	int ret;
 
-	if (id == scp_ultra->scp_ultra_dl_memif_id) {
+	if (id == get_scp_ultra_memif_id(SCP_ULTRA_DL_DAI_ID)) {
 		ultra_dma_buf = &ultra_mem->ultra_dl_dma_buf;
 		buf_offset = ULTRA_BUF_OFFSET;
-	} else if (id == scp_ultra->scp_ultra_ul_memif_id) {
+	} else if (id == get_scp_ultra_memif_id(SCP_ULTRA_UL_DAI_ID)) {
 		ultra_dma_buf = &ultra_mem->ultra_ul_dma_buf;
 		buf_offset = ULTRA_BUF_OFFSET * 2;
 	}  else {

@@ -3,6 +3,7 @@
  *  mt6877-mt6359.c  --  mt6877 mt6359 ALSA SoC machine driver
  *
  *  Copyright (c) 2020 MediaTek Inc.
+ *  Copyright (C) 2021 XiaoMi, Inc.
  *  Author: Eason Yen <eason.yen@mediatek.com>
  */
 

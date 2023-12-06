@@ -3,6 +3,7 @@
  * mtk-scp-ultra-platform.c --  Mediatek scp ultra platform
  *
  * Copyright (c) 2018 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  * Author: Shane Chien <shane.chien@mediatek.com>
  */
 
@@ -12,20 +13,23 @@
 #include <linux/spinlock.h>
 #include <asm/arch_timer.h>
 #include <sound/soc.h>
-#include <linux/pm_wakeup.h>
-#include <linux/pm_runtime.h>
 
+#include "audio_task_manager.h"
 #include "scp_helper.h"
 #include "scp_excep.h"
 #include "audio_ultra_msg_id.h"
+#include "audio_task_manager.h"
 #include "mtk-scp-ultra-mem-control.h"
+#include "mtk-scp-ultra-platform-mem-control.h"
 #include "mtk-scp-ultra-platform-driver.h"
 #include "mtk-base-scp-ultra.h"
 #include "mtk-scp-ultra-common.h"
 #include "mtk-base-afe.h"
+#include "audio_buf.h"
 #include "ultra_ipi.h"
 #include "mtk-scp-ultra_dump.h"
 #include "scp_feature_define.h"
+#include <linux/pm_wakeup.h>
 
 
 //static DEFINE_SPINLOCK(scp_ultra_ringbuf_lock);
@@ -152,7 +156,7 @@ static int mtk_scp_ultra_dump_set(struct snd_kcontrol *kcontrol,
 			snd_soc_component_get_drvdata(cmpnt);
 	struct mtk_base_scp_ultra_dump *ultra_dump = &scp_ultra->ultra_dump;
 	//struct mtk_base_scp_ultra_mem *ultra_mem = &scp_ultra->ultra_mem;
-	struct mtk_base_afe *afe = ultra_get_afe_base();
+	struct mtk_base_afe *afe = get_afe_base();
 	static int ctrl_val;
 	int timeout = 0;
 	int payload[3];
@@ -279,7 +283,6 @@ static int mtk_scp_ultra_gain_config_set(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-
 static int mtk_scp_ultra_engine_state_get(struct snd_kcontrol *kcontrol,
 					  struct snd_ctl_elem_value *ucontrol)
 {
@@ -293,39 +296,35 @@ static int mtk_scp_ultra_engine_state_set(struct snd_kcontrol *kcontrol,
 					  struct snd_ctl_elem_value *ucontrol)
 {
 	struct mtk_base_scp_ultra *scp_ultra = get_scp_ultra_base();
-	struct mtk_base_afe *afe = ultra_get_afe_base();
+	struct mtk_base_afe *afe = get_afe_base();
 	struct mtk_base_scp_ultra_mem *ultra_mem = &scp_ultra->ultra_mem;
 	int scp_ultra_memif_dl_id;
 	int scp_ultra_memif_ul_id;
 	int val = ucontrol->value.integer.value[0];
 	int payload[7];
-	int old_usnd_state = scp_ultra->usnd_state;
-	bool ret_val = false;
 
-	if (val < SCP_ULTRA_STATE_IDLE || val > SCP_ULTRA_STATE_RECOVERY) {
+	if (val < SCP_ULTRA_STATE_IDLE || val > SCP_ULTRA_STATE_OFF) {
 		pr_info("%s() unexpected state, ignore\n", __func__);
 		return -1;
 	}
 	scp_ultra->usnd_state = val;
-
 	scp_ultra_memif_dl_id =
-		scp_ultra->scp_ultra_dl_memif_id;
+		get_scp_ultra_memif_id(SCP_ULTRA_DL_DAI_ID);
 	scp_ultra_memif_ul_id =
-		scp_ultra->scp_ultra_ul_memif_id;
+		get_scp_ultra_memif_id(SCP_ULTRA_UL_DAI_ID);
 	ultra_mem->ultra_dl_memif_id = scp_ultra_memif_dl_id;
 	ultra_mem->ultra_ul_memif_id = scp_ultra_memif_ul_id;
 	pr_info("%s() new state=%d, memdl=%d, memul=%d\n",
 		__func__, scp_ultra->usnd_state,
 		scp_ultra_memif_dl_id,
 		scp_ultra_memif_ul_id);
+
 	switch (scp_ultra->usnd_state) {
 	case SCP_ULTRA_STATE_ON:
 		scp_register_feature(ULTRA_FEATURE_ID);
-		aud_wake_lock(&ultra_suspend_lock);
-
+		__pm_stay_awake(&ultra_suspend_lock);
 		afe->memif[scp_ultra_memif_dl_id].scp_ultra_enable = true;
 		afe->memif[scp_ultra_memif_ul_id].scp_ultra_enable = true;
-
 		payload[0] = param_config.rate_out;
 		payload[1] = param_config.channel_out;
 		payload[2] = param_config.period_out_size;
@@ -333,24 +332,12 @@ static int mtk_scp_ultra_engine_state_set(struct snd_kcontrol *kcontrol,
 		payload[4] = param_config.channel_in;
 		payload[5] = param_config.period_in_size;
 		payload[6] = param_config.target_out_channel;
-		ret_val = ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_ON,
-					false,
-					7,
-					&payload[0],
-					ULTRA_IPI_NEED_ACK);
-		if (ret_val == 0) {
-			pr_info("%s() set state on failed\n", __func__);
-			scp_ultra->usnd_state = SCP_ULTRA_STATE_IDLE;
-			afe->memif[scp_ultra_memif_dl_id].scp_ultra_enable =
-				false;
-			afe->memif[scp_ultra_memif_ul_id].scp_ultra_enable =
-				false;
-			scp_deregister_feature(ULTRA_FEATURE_ID);
-			aud_wake_unlock(&ultra_suspend_lock);
-			return -1;
-		}
+		ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_ON,
+			       false,
+			       7,
+			       &payload[0],
+			       ULTRA_IPI_NEED_ACK);
 		return 0;
-
 	case SCP_ULTRA_STATE_OFF:
 		ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_OFF,
 			       false,
@@ -358,7 +345,7 @@ static int mtk_scp_ultra_engine_state_set(struct snd_kcontrol *kcontrol,
 			       NULL,
 			       ULTRA_IPI_NEED_ACK);
 		scp_deregister_feature(ULTRA_FEATURE_ID);
-		aud_wake_unlock(&ultra_suspend_lock);
+		__pm_relax(&ultra_suspend_lock);
 		return 0;
 	case SCP_ULTRA_STATE_START:
 		ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_START,
@@ -374,35 +361,12 @@ static int mtk_scp_ultra_engine_state_set(struct snd_kcontrol *kcontrol,
 			       NULL,
 			       ULTRA_IPI_NEED_ACK);
 		return 0;
-	case SCP_ULTRA_STATE_RECOVERY:
-		if (old_usnd_state == SCP_ULTRA_STATE_OFF ||
-		    old_usnd_state == SCP_ULTRA_STATE_IDLE ||
-		    old_usnd_state == SCP_ULTRA_STATE_RECOVERY)
-			return 0;
-		pm_runtime_get_sync(afe->dev);
-		if (old_usnd_state == SCP_ULTRA_STATE_START)
-			ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_STOP,
-				       false,
-				       0,
-				       NULL,
-				       ULTRA_IPI_NEED_ACK);
-		ultra_ipi_send(AUDIO_TASK_USND_MSG_ID_OFF,
-			       false,
-			       0,
-			       NULL,
-			       ULTRA_IPI_NEED_ACK);
-		scp_deregister_feature(ULTRA_FEATURE_ID);
-		pm_runtime_put(afe->dev);
-		aud_wake_unlock(&ultra_suspend_lock);
-		return 0;
 	default:
 		pr_info("%s() err state, ignore\n", __func__);
 		return -1;
-
 	}
 	return 0;
 }
-
 
 static const struct snd_kcontrol_new ultra_platform_kcontrols[] = {
 	SOC_ENUM_EXT("mtk_scp_ultra_pcm_dump",
@@ -418,9 +382,10 @@ static const struct snd_kcontrol_new ultra_platform_kcontrols[] = {
 			  mtk_scp_ultra_gain_config_get,
 			  mtk_scp_ultra_gain_config_set),
 	SOC_SINGLE_EXT("mtk_scp_ultra_engine_state",
-		     SND_SOC_NOPM, 0, 0xff, 0,
-		     mtk_scp_ultra_engine_state_get,
-		     mtk_scp_ultra_engine_state_set),
+		       SND_SOC_NOPM, 0, 0xff, 0,
+		       mtk_scp_ultra_engine_state_get,
+		       mtk_scp_ultra_engine_state_set),
+
 };
 
 static int mtk_scp_ultra_pcm_open(struct snd_pcm_substream *substream)
@@ -430,11 +395,11 @@ static int mtk_scp_ultra_pcm_open(struct snd_pcm_substream *substream)
 	struct mtk_base_scp_ultra *scp_ultra =
 		snd_soc_platform_get_drvdata(rtd->platform);
 	struct mtk_base_scp_ultra_mem *ultra_mem = &scp_ultra->ultra_mem;
-	struct mtk_base_afe *afe = ultra_get_afe_base();
+	struct mtk_base_afe *afe = get_afe_base();
 	int scp_ultra_memif_dl_id =
-		scp_ultra->scp_ultra_dl_memif_id;
+		get_scp_ultra_memif_id(SCP_ULTRA_DL_DAI_ID);
 	int scp_ultra_memif_ul_id =
-		scp_ultra->scp_ultra_ul_memif_id;
+		get_scp_ultra_memif_id(SCP_ULTRA_UL_DAI_ID);
 
 	ultra_mem->ultra_dl_memif_id = scp_ultra_memif_dl_id;
 	ultra_mem->ultra_ul_memif_id = scp_ultra_memif_ul_id;
@@ -463,13 +428,14 @@ static int mtk_scp_ultra_pcm_open(struct snd_pcm_substream *substream)
 
 	return 0;
 }
+
 static int mtk_scp_ultra_pcm_start(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct mtk_base_scp_ultra *scp_ultra =
 			snd_soc_platform_get_drvdata(rtd->platform);
 	struct mtk_base_scp_ultra_mem *ultra_mem = &scp_ultra->ultra_mem;
-	struct mtk_base_afe *afe = ultra_get_afe_base();
+	struct mtk_base_afe *afe = get_afe_base();
 	struct mtk_base_afe_memif *memif =
 		&afe->memif[ultra_mem->ultra_dl_memif_id];
 	struct mtk_base_afe_memif *memiful =
@@ -482,6 +448,7 @@ static int mtk_scp_ultra_pcm_start(struct snd_pcm_substream *substream)
 	const struct mtk_base_irq_data *irq_data_ul = irqs_ul->irq_data;
 	int counter;
 	int fs;
+
 	/* Set dl&ul irq target to scp */
 	set_afe_dl_irq_target(true);
 	set_afe_ul_irq_target(true);
@@ -530,9 +497,9 @@ static int mtk_scp_ultra_pcm_start(struct snd_pcm_substream *substream)
 		return -EINVAL;
 	}
 	regmap_update_bits(afe->regmap, irq_data_ul->irq_fs_reg,
-			  irq_data_ul->irq_fs_maskbit
-			  << irq_data_ul->irq_fs_shift,
-			  fs << irq_data_ul->irq_fs_shift);
+			   irq_data_ul->irq_fs_maskbit
+			   << irq_data_ul->irq_fs_shift,
+			   fs << irq_data_ul->irq_fs_shift);
 
 	/* Start ul memif */
 	regmap_update_bits(afe->regmap,
@@ -542,8 +509,9 @@ static int mtk_scp_ultra_pcm_start(struct snd_pcm_substream *substream)
 
 	/* start ul irq */
 	regmap_update_bits(afe->regmap, irq_data_ul->irq_en_reg,
-			1 << irq_data_ul->irq_en_shift,
-			1 << irq_data_ul->irq_en_shift);
+			   1 << irq_data_ul->irq_en_shift,
+			   1 << irq_data_ul->irq_en_shift);
+
 	return 0;
 }
 
@@ -553,7 +521,7 @@ static int mtk_scp_ultra_pcm_stop(struct snd_pcm_substream *substream)
 	struct mtk_base_scp_ultra *scp_ultra =
 			snd_soc_platform_get_drvdata(rtd->platform);
 	struct mtk_base_scp_ultra_mem *ultra_mem = &scp_ultra->ultra_mem;
-	struct mtk_base_afe *afe = ultra_get_afe_base();
+	struct mtk_base_afe *afe = get_afe_base();
 	struct mtk_base_afe_memif *memif =
 		&afe->memif[ultra_mem->ultra_dl_memif_id];
 	struct mtk_base_afe_memif *memiful =
@@ -608,11 +576,13 @@ static int mtk_scp_ultra_pcm_stop(struct snd_pcm_substream *substream)
 	/* Set dl&ul irq to ap */
 	set_afe_dl_irq_target(false);
 	set_afe_ul_irq_target(false);
+
 	return 0;
 }
+
 static int mtk_scp_ultra_pcm_close(struct snd_pcm_substream *substream)
 {
-	struct mtk_base_afe *afe = ultra_get_afe_base();
+	struct mtk_base_afe *afe = get_afe_base();
 	if (pcm_dump_on) {
 		/* scp ultra dump buffer use dram */
 		if (afe->release_dram_resource)
@@ -680,9 +650,10 @@ static int mtk_scp_ultra_pcm_new(struct snd_soc_pcm_runtime *rtd)
 #ifdef CONFIG_MTK_TINYSYS_SCP_SUPPORT
 	scp_A_register_notify(&usnd_scp_recover_notifier);
 #endif
-	aud_wake_lock_init(&ultra_suspend_lock, "ultra wakelock");
+	wakeup_source_init(&ultra_suspend_lock, "ultra wakelock");
 	pcm_dump_switch = false;
 	scp_ultra->usnd_state = SCP_ULTRA_STATE_IDLE;
+
 	return ret;
 }
 
