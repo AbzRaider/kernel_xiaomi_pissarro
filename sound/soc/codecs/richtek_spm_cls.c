@@ -1,6 +1,12 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2021 Mediatek Inc.
+ * Rcihtek BIGDATA Class Driver
+ *
+ * Copyright (C) 2019, Richtek Technology Corp.
+ * Author: Jeff Chang <jeff_chang@richtek.com>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  */
 
 #include <linux/init.h>
@@ -33,10 +39,9 @@ enum {
 
 #pragma pack(push, 1)
 struct richtek_ipi_cmd {
-	int32_t data[16];
 	int32_t type;
 	int32_t cmd;
-	int32_t id;
+	int32_t data[16];
 } __aligned(32);
 #pragma pack(pop)
 
@@ -98,13 +103,10 @@ static int rt_spm_trigger_calibration(struct device *dev, void *data)
 	struct richtek_ipi_cmd ric;
 	int ret = 0;
 	u32 tmp = *(u32 *)data;
-#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUDIO_DSP)
 	uint32_t data_size = 0;
-#endif
 	int polling_cnt = 6;
 
 	ric.type = RTK_IPI_TYPE_CALIBRATION;
-	ric.id = rdc->id;
 	if (tmp < 0 || tmp >= RTK_IPI_CMD_NR)
 		return -EINVAL;
 	rdc->calib_running = cali_status = 1;
@@ -128,10 +130,8 @@ static int rt_spm_trigger_calibration(struct device *dev, void *data)
 		ric.cmd = tmp;
 		break;
 	}
-#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUDIO_DSP)
 	/* enable calibration mode */
 	ret = mtk_spk_send_ipi_buf_to_dsp(&ric, sizeof(ric));
-#endif
 	if (ret < 0) {
 		pr_err("%s ret = %d\n", __func__, ret);
 		return -EINVAL;
@@ -140,11 +140,9 @@ static int rt_spm_trigger_calibration(struct device *dev, void *data)
 	do {
 		msleep(100);
 		/* get calibration result */
-#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUDIO_DSP)
 		ret = mtk_spk_recv_ipi_buf_from_dsp((int8_t *)&ric,
 				sizeof(ric),
 				&data_size);
-#endif
 		if (ret == 0 && ric.data[0] == 0)
 			break;
 	} while (polling_cnt--);
@@ -195,7 +193,7 @@ static int rt_spm_trigger_calibration(struct device *dev, void *data)
 				rdc->pwr = ric.data[1];
 			else
 				rdc->pwr = 0;
-			if (rdc->ops && rdc->ops->post_vvalid)
+			if (rdc->ops->post_vvalid)
 				rdc->ops->post_vvalid(rdc);
 			break;
 		}
@@ -203,9 +201,7 @@ static int rt_spm_trigger_calibration(struct device *dev, void *data)
 
 	/* change to normal mode */
 	ric.type = RTK_IPI_TYPE_NORMAL;
-#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUDIO_DSP)
 	ret = mtk_spk_send_ipi_buf_to_dsp(&ric, sizeof(ric));
-#endif
 	if (ret < 0) {
 		dev_err(dev, "%s ret = %d\n", __func__, ret);
 		rdc->calib_running = 0;
@@ -512,18 +508,14 @@ static int rt_spm_classdev_ampon(struct richtek_spm_classdev *rdc)
 static int rt_spm_classdev_ampoff(struct richtek_spm_classdev *rdc)
 {
 	int ret;
-#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUDIO_DSP)
 	uint32_t data_size = 0;
-#endif
 	struct richtek_ipi_cmd ric;
 
 	if (!rdc)
 		return -EINVAL;
 
-#if IS_ENABLED(CONFIG_SND_SOC_MTK_AUDIO_DSP)
 	ret = mtk_spk_recv_ipi_buf_from_dsp((int8_t *)&ric, sizeof(ric),
 					    &data_size);
-#endif
 	if (ret < 0) {
 		pr_err("%s recv big data ipi failed\n", __func__);
 		return ret;

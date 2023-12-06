@@ -223,6 +223,36 @@ static int mt6660_codec_init_setting(struct snd_soc_codec *codec)
 	return 0;
 }
 
+static int mt6660_spm_pre_calib(struct richtek_spm_classdev *ptc)
+{
+	struct mt6660_chip *chip = container_of(ptc, struct mt6660_chip, spm);
+	int ret = 0;
+
+	ret |= mt6660_chip_power_on(chip->codec, 1);
+	ret |= snd_soc_update_bits(chip->codec, MT6660_REG_PATH_BYPASS, 0x04,
+				   0x04);
+	ret |= mt6660_chip_power_on(chip->codec, 0);
+	return ret;
+}
+
+static int mt6660_spm_post_calib(struct richtek_spm_classdev *ptc)
+{
+	struct mt6660_chip *chip = container_of(ptc, struct mt6660_chip, spm);
+	int ret = 0;
+
+	ret |= mt6660_chip_power_on(chip->codec, 1);
+	ret |= snd_soc_update_bits(chip->codec, MT6660_REG_PATH_BYPASS, 0x04,
+				   0x00);
+	ret |= mt6660_chip_power_on(chip->codec, 0);
+
+	return ret;
+}
+
+static struct richtek_spm_device_ops mt6660_spm_ops = {
+	.pre_calib = mt6660_spm_pre_calib,
+	.post_calib = mt6660_spm_post_calib,
+};
+
 static int mt6660_codec_probe(struct snd_soc_codec *codec)
 {
 	struct mt6660_chip *chip = snd_soc_codec_get_drvdata(codec);
@@ -246,8 +276,9 @@ static int mt6660_codec_probe(struct snd_soc_codec *codec)
 	}
 	chip->codec = codec;
 
-	chip->spm.max_pwr = 5100;
-	chip->spm.min_pwr = 4000;
+	chip->spm.max_pwr = 5000;
+	chip->spm.min_pwr = 4300;
+	chip->spm.ops = &mt6660_spm_ops;
 	ret = richtek_spm_classdev_register(codec->dev, &chip->spm);
 	if (ret < 0) {
 		dev_err(codec->dev, "spm class register faled\n");

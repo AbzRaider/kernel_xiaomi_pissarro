@@ -2,6 +2,7 @@
  * cs35l41.c -- CS35l41 ALSA SoC audio driver
  *
  * Copyright 2018 Cirrus Logic, Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * Author:	David Rhodes	<david.rhodes@cirrus.com>
  *		Brian Austin	<brian.austin@cirrus.com>
@@ -40,13 +41,12 @@
 #include <linux/spi/spi.h>
 #include <linux/err.h>
 #include <linux/firmware.h>
-#include <linux/mutex.h>
 
 #include "wm_adsp.h"
 #include "cs35l41.h"
 #include <sound/cs35l41.h>
 
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
+#ifdef CONFIG_PRODUCT_PISSARRO
 /* Define the safe gain to protect RCV Switch */
 #define RCV_SWITCH_MAX_SAFE_GAIN (13)
 #endif
@@ -145,8 +145,6 @@ static const unsigned char cs35l41_bst_k2_table[4][5] = {
 static const unsigned char cs35l41_bst_slope_table[4] = {
 					0x75, 0x6B, 0x3B, 0x28};
 
-static struct mutex rcv_pinctrl_mutex;
-
 static int cs35l41_codec_set_sysclk(struct snd_soc_codec *codec,
 				int clk_id, int source, unsigned int freq,
 				int dir);
@@ -222,9 +220,7 @@ static const char *cs35l41_fast_switch_text[] = {
 	"cs35l41-delta-rcv-handsfree.txt",
 	"cs35l41-delta-rcv-handset.txt",
 };
-
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
-
+#ifdef CONFIG_PRODUCT_PISSARRO
 static int cs35l41_rcv_swtich_put(struct snd_kcontrol *kcontrol,
 							struct snd_ctl_elem_value *ucontrol)
 {
@@ -259,8 +255,6 @@ static int cs35l41_rcv_swtich_get(struct snd_kcontrol *kcontrol,
 	struct cs35l41_private *cs35l41 = snd_soc_codec_get_drvdata(codec);
 	int external_switch = 0;
 
-
-
 	if (cs35l41 && cs35l41->pdata.tuning_has_prefix && !IS_ERR(cs35l41->external_switch)) {
 		external_switch = gpiod_get_value(cs35l41->external_switch);
 		if (external_switch == 1) {
@@ -272,55 +266,6 @@ static int cs35l41_rcv_swtich_get(struct snd_kcontrol *kcontrol,
 		}
 	} else {
 		dev_err(cs35l41->dev, "%s: RCV Switch failed to get gpio \n", __func__);
-	}
-	return ret;
-}
-#endif
-
-#ifdef CONFIG_SND_SOC_CS35L41_CHOPIN
-static int cs35l41_rcv_swtich_put(struct snd_kcontrol *kcontrol,
-							struct snd_ctl_elem_value *ucontrol)
-{
-	int 	ret = 0;
-
-	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
-	struct cs35l41_private *cs35l41 = snd_soc_codec_get_drvdata(codec);
-	int external_switch = ucontrol->value.integer.value[0];
-
-	if (!IS_ERR(cs35l41->external_switch)) {
-		if (external_switch == 1) {
-			gpiod_set_value_cansleep(cs35l41->external_switch, 1);
-		} else if (external_switch == 0) {
-			gpiod_set_value_cansleep(cs35l41->external_switch, 0);
-		} else {
-			ret = -EINVAL;
-		}
-	} else {
-		dev_info(cs35l41->dev, "RCV Switch failed to get gpio \n", __func__);
-	}
-	return ret;
-};
-
-static int cs35l41_rcv_swtich_get(struct snd_kcontrol *kcontrol,
-							struct snd_ctl_elem_value *ucontrol)
-{
-	int 	ret = 0;
-
-	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
-	struct cs35l41_private *cs35l41 = snd_soc_codec_get_drvdata(codec);
-	int external_switch = 0;
-
-	if (!IS_ERR(cs35l41->external_switch)) {
-		external_switch = gpiod_get_value(cs35l41->external_switch);
-		if (external_switch == 1) {
-			ucontrol->value.integer.value[0] = 1;
-		} else if (external_switch == 0) {
-			ucontrol->value.integer.value[0] = 0;
-		} else {
-			dev_info(cs35l41->dev, "RCV Switch gpio get value failed \n", __func__);
-		}
-	} else {
-		dev_info(cs35l41->dev, "RCV Switch failed to get gpio \n", __func__);
 	}
 	return ret;
 }
@@ -426,18 +371,7 @@ static int cs35l41_do_fast_switch(struct cs35l41_private *cs35l41)
 			}
 		}
 	}
-#ifndef CONFIG_SND_SOC_CS35L41_ARES
-        /* Verify if there is no active CSPL commands */
-        wm_adsp_read_ctl(&cs35l41->dsp, "CSPL_COMMAND", &cmd_ctl, sizeof(s32));
-        if (be32_to_cpu(cmd_ctl) != CSPL_CMD_NONE) {
-                dev_err(cs35l41->dev, "CSPL_COMMAND = %d)\n",
-                        be32_to_cpu(cmd_ctl));
-                usleep_range(100, 110);
-                cmd_ctl = cpu_to_be32(CSPL_CMD_NONE);
-                wm_adsp_write_ctl(&cs35l41->dsp, "CSPL_COMMAND",
-                                   &cmd_ctl, sizeof(s32));
-        }
-#endif
+
 	wm_adsp_write_ctl(&cs35l41->dsp, "CSPL_UPDATE_PARAMS_CONFIG",
 			  data_ctl_buf, data_ctl_len * sizeof(s32));
 
@@ -501,9 +435,6 @@ static int cs35l41_fast_switch_en_put(struct snd_kcontrol *kcontrol,
 }
 
 static int cs35l41_rcv_switch_pinctrl(struct cs35l41_private *cs35l41) {
-
-
-	mutex_lock(&rcv_pinctrl_mutex);
 	pr_info("%s() fast_switch_file_idx %d\n", __func__, cs35l41->fast_switch_file_idx);
 	// index 4 is rcv-handset.txt
 	if (cs35l41->fast_switch_file_idx == 4) {
@@ -513,8 +444,6 @@ static int cs35l41_rcv_switch_pinctrl(struct cs35l41_private *cs35l41) {
 		pinctrl_select_state(cs35l41->rcv_switch_gpio_pinctrl,
 					cs35l41->rcv_pinctrl_low);
 	}
-	pr_info("%s() cs35l41_rcv_switch_pinctrl end", __func__);
-	mutex_unlock(&rcv_pinctrl_mutex);
 
 	return 0;
 }
@@ -535,6 +464,7 @@ static int cs35l41_fast_switch_file_put(struct snd_kcontrol *kcontrol,
 	}
 
 	cs35l41->fast_switch_file_idx = i;
+
 	if (cs35l41->rcv_switch_gpio_pinctrl != NULL) {
 		cs35l41_rcv_switch_pinctrl(cs35l41);
 	}
@@ -783,35 +713,20 @@ static const struct snd_kcontrol_new cs35l41_aud_controls[] = {
 			 0, 7, 0),
 	SOC_SINGLE_RANGE("ASPRX2 Slot Position", CS35L41_SP_FRAME_RX_SLOT, 8,
 			 0, 7, 0),
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
-	SOC_SINGLE("Noise Gate", CS35L41_NG_CFG, 0, 0x3FFF, 0),
-	SOC_SINGLE("Volume VPBR", CS35L41_VPBR_CFG, 0, 0xFFFFFFFF, 0),
-#else
-        //Convert hex to int, eg. 0x3F75 --> 16245, tinymix 'Noise Gate' 16245
-        SOC_SINGLE("Noise Gate", CS35L41_NG_CFG, 0, 0x3FFF, 0),
-        //Convert hex to int, eg. 0x2005309 --> 33575689, tinymix 'VPBR Config' 33575689
-        SOC_SINGLE("VPBR Config", CS35L41_VPBR_CFG, 0, 0x7FFFFFF, 0),
-#endif
 	SOC_ENUM("PCM Soft Ramp", pcm_sft_ramp),
 	SOC_SINGLE("AMP Enable", CS35L41_PWR_CTRL2, 0, 1, 0),
+	SOC_SINGLE("Noise Gate", CS35L41_NG_CFG, 0, 0x3FFF, 0),
+	SOC_SINGLE("Volume VPBR", CS35L41_VPBR_CFG, 0, 0xFFFFFFFF, 0),
 	SOC_SINGLE_EXT("DSP Booted", SND_SOC_NOPM, 0, 1, 0,
 			cs35l41_halo_booted_get, cs35l41_halo_booted_put),
 	SOC_SINGLE_EXT("Fast Use Case Switch Enable", SND_SOC_NOPM, 0, 1, 0,
 		       cs35l41_fast_switch_en_get, cs35l41_fast_switch_en_put),
 	SOC_SINGLE_EXT("Firmware Reload Tuning", SND_SOC_NOPM, 0, 1, 0,
 			cs35l41_reload_tuning_get, cs35l41_reload_tuning_put),
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
 	SOC_SINGLE("GLOBAL_EN from GPIO Control", CS35L41_PWR_CTRL1, 8, 1, 0),
-#else
-	SOC_SINGLE("GLOBAL_EN from GPIO Control", CS35L41_PWR_CTRL1, 0, 1, 0),
-#endif
 	WM_ADSP2_PRELOAD_SWITCH("DSP1", 1),
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
+#ifdef CONFIG_PRODUCT_PISSARRO
 	SOC_SINGLE_EXT("Switch", SND_SOC_NOPM, 0, 1, 0,
-			cs35l41_rcv_swtich_get, cs35l41_rcv_swtich_put),
-#endif
-#ifdef CONFIG_SND_SOC_CS35L41_CHOPIN
-	SOC_SINGLE_EXT("RCV Switch", SND_SOC_NOPM, 0, 1, 0,
 			cs35l41_rcv_swtich_get, cs35l41_rcv_swtich_put),
 #endif
 
@@ -1093,14 +1008,6 @@ static const struct reg_sequence cs35l41_pdn_patch[] = {
 	{0x00000040, 0x00000033},
 };
 
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
-#else
-static const struct reg_sequence cs35l41_dsp_recovery_patch[] = {
-	{0x02800258, 0x00000000},
-	{0x0280025c, 0x00000000},
-};
-#endif
-
 static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 		struct snd_kcontrol *kcontrol, int event)
 {
@@ -1112,7 +1019,9 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 	int i;
 	bool pdn;
 	unsigned int val;
-	pr_debug("++++>CSPL: %s, event = %d.\n", __func__, event);
+
+	dev_info(cs35l41->dev, " %s, event = %d.\n", __func__, event);
+
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		regmap_multi_reg_write_bypassed(cs35l41->regmap,
@@ -1143,19 +1052,9 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 				mboxcmd = CSPL_MBOX_CMD_RESUME;
 				break;
 			default:
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
 				dev_err(cs35l41->dev,
 					"Firmware status is invalid(%u)\n",
 					fw_status);
-#else
-				dev_err(cs35l41->dev,
-					"Firmware status is invalid(%u), try to recorver\n",
-					fw_status);
-				regmap_multi_reg_write_bypassed(cs35l41->regmap,
-						cs35l41_dsp_recovery_patch,
-						ARRAY_SIZE(cs35l41_dsp_recovery_patch));
-				mboxcmd = CSPL_MBOX_CMD_RESUME;
-#endif
 				break;
 			}
 			ret = cs35l41_set_csplmboxcmd(cs35l41, mboxcmd);
@@ -1204,7 +1103,7 @@ static int cs35l41_main_amp_event(struct snd_soc_dapm_widget *w,
 		dev_err(codec->dev, "Invalid event = 0x%x\n", event);
 		ret = -EINVAL;
 	}
-	pr_debug("----CSPL: %s.\n", __func__);
+
 	return ret;
 }
 
@@ -1356,7 +1255,7 @@ static int cs35l41_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 			snd_soc_codec_get_drvdata(codec_dai->codec);
 	unsigned int asp_fmt, lrclk_fmt, sclk_fmt, slave_mode;
 
-	pr_debug("++++>CSPL: %s, fmt = %d.\n", __func__, fmt);
+	dev_info(cs35l41->dev, "%s, fmt = %x\n", __func__, fmt);
 
 	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 	case SND_SOC_DAIFMT_CBM_CFM:
@@ -1426,7 +1325,7 @@ static int cs35l41_set_dai_fmt(struct snd_soc_dai *codec_dai, unsigned int fmt)
 				CS35L41_SCLK_INV_MASK,
 				sclk_fmt << CS35L41_SCLK_INV_SHIFT);
 
-	pr_debug("---->CSPL: %s, fmt = %d.\n", __func__, fmt);
+	dev_info(cs35l41->dev, "%s, fmt = %x\n", __func__, fmt);
 	return 0;
 }
 
@@ -1451,33 +1350,7 @@ static const struct cs35l41_global_fs_config cs35l41_fs_rates[] = {
 	{ 32000,	0x13 },
 };
 
-#ifdef CONFIG_SND_SOC_CS35L41_ARES
 
-#define HANDSET_TUNING "cs35l41-delta-rcv-handset.txt"
-
-static int cs35l41_is_speaker_in_handset(struct cs35l41_private *cs35l41)
-{
-	const char *fw_name = NULL;
-
-	/* Only care about speaker ops*/
-	if (cs35l41->pdata.tuning_has_prefix) {
-		dev_info(cs35l41->dev, "%s: has prefix", __func__);
-		return 0;
-	}
-
-	/* Check the tuning on RCV amp */
-	fw_name = cs35l41->fast_switch_names[cs35l41->fast_switch_file_idx];
-
-	if (!strcmp(fw_name, HANDSET_TUNING)) {
-		dev_info(cs35l41->dev, "%s: [%d] = '%s'\n",
-				__func__, cs35l41->fast_switch_file_idx, fw_name);
-		return 1;
-	}
-
-	return 0;
-}
-
-#endif // CONFIG_SND_SOC_CS35L41_ARES
 
 static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 				 struct snd_pcm_hw_params *params,
@@ -1488,14 +1361,7 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 	unsigned int rate = params_rate(params);
 	u8 asp_width, asp_wl;
 
-	pr_debug("++++>CSPL: %s.\n", __func__);
-#ifdef CONFIG_SND_SOC_CS35L41_ARES
-	if (cs35l41_is_speaker_in_handset(cs35l41)) {
-		dev_info(cs35l41->dev, "%s: speaker amp"
-				" hw_parmas in handset mode\n", __func__);
-		return 0;
-	}
-#endif // CONFIG_SND_SOC_CS35L41_ARES
+	dev_info(cs35l41->dev, "%s.\n", __func__);
 
 	for (i = 0; i < ARRAY_SIZE(cs35l41_fs_rates); i++) {
 		if (rate == cs35l41_fs_rates[i].rate)
@@ -1521,14 +1387,12 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 				CS35L41_ASP_RX_WL_MASK,
 				asp_wl << CS35L41_ASP_RX_WL_SHIFT);
 		// set TX register for I2S IN ref
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
 		regmap_update_bits(cs35l41->regmap, CS35L41_SP_FORMAT,
 				CS35L41_ASP_WIDTH_TX_MASK,
 				asp_width << CS35L41_ASP_WIDTH_TX_SHIFT);
 		regmap_update_bits(cs35l41->regmap, CS35L41_SP_TX_WL,
 				CS35L41_ASP_TX_WL_MASK,
 				asp_wl << CS35L41_ASP_TX_WL_SHIFT);
-#endif
 		pr_debug("%s rx asp_wl is updated to be %d.\n", __func__, asp_wl);
 		if (cs35l41->i2s_mode) {
 			regmap_update_bits(cs35l41->regmap,
@@ -1551,7 +1415,7 @@ static int cs35l41_pcm_hw_params(struct snd_pcm_substream *substream,
 				asp_wl << CS35L41_ASP_TX_WL_SHIFT);
 	}
 
-	pr_debug("---->CSPL: %s.\n", __func__);
+	dev_info(cs35l41->dev, "%s.\n", __func__);
 	return 0;
 }
 
@@ -1580,9 +1444,9 @@ static const struct snd_pcm_hw_constraint_list cs35l41_constraints = {
 static int cs35l41_pcm_startup(struct snd_pcm_substream *substream,
 			       struct snd_soc_dai *dai)
 {
+	struct cs35l41_private *cs35l41 = snd_soc_codec_get_drvdata(dai->codec);
 
-	//struct snd_soc_codec *codec = dai->codec;
-	pr_debug("++++>CSPL: %s.\n", __func__);
+	dev_info(cs35l41->dev, "%s.\n", __func__);
 
 	cs35l41_set_dai_fmt(dai, SND_SOC_DAIFMT_CBS_CFS|SND_SOC_DAIFMT_I2S);
 
@@ -1590,7 +1454,6 @@ static int cs35l41_pcm_startup(struct snd_pcm_substream *substream,
 		return snd_pcm_hw_constraint_list(substream->runtime, 0,
 				SNDRV_PCM_HW_PARAM_RATE, &cs35l41_constraints);
 
-	pr_debug("---->CSPL: %s.\n", __func__);
 	return 0;
 }
 
@@ -1603,7 +1466,6 @@ static int cs35l41_codec_set_sysclk(struct snd_soc_codec *codec,
 	int val = 0;
 	cs35l41->extclk_freq = freq;
 
-	pr_debug("++++>CSPL: %s: clk_id = %d, src = %d, freq = %d, dir = %d.\n", __func__, clk_id, source, freq, dir);
 	dev_info(codec->dev, "%s: clk_id=%d, src=%d, freq=%d\n", __func__, clk_id, source, freq);
 
 	switch (clk_id) {
@@ -1655,7 +1517,6 @@ static int cs35l41_codec_set_sysclk(struct snd_soc_codec *codec,
 
 	regmap_read(cs35l41->regmap, CS35L41_PLL_CLK_CTRL, &val);
 	dev_info(codec->dev, "%s: 0x%x <== 0x%x\n", __func__, CS35L41_PLL_CLK_CTRL, val);
-	pr_debug("---->CSPL: %s.\n", __func__);
 
 	return 0;
 }
@@ -1668,14 +1529,14 @@ static int cs35l41_dai_set_sysclk(struct snd_soc_dai *dai,
 	unsigned int fs1_val = 0;
 	unsigned int fs2_val = 0;
 	unsigned int val;
-	pr_debug("++++>CSPL: %s: clk_id=%d, freq=%d, dir=%d\n", __func__, clk_id, freq, dir);
+
+	dev_info(cs35l41->dev, "%s: clk_id=%d, freq=%d, dir=%d\n", __func__, clk_id, freq, dir);
 	if (cs35l41_get_clk_config(freq) < 0) {
 		dev_err(codec->dev, "Invalid CLK Config freq: %u\n", freq);
 		return -EINVAL;
 	}
 
 	cs35l41->sclk = freq;
-	pr_debug("---->CSPL: %s.\n", __func__);
 	dev_dbg(cs35l41->dev, "Set DAI sysclk %d\n", freq);
 	if (cs35l41->sclk > 6000000) {
 		fs1_val = 3 * 4 + 4;
@@ -1702,12 +1563,11 @@ static int  cs35l41_digital_mute(struct snd_soc_dai *dai, int mute)
 {
 	struct snd_soc_codec *codec = dai->codec;
 	struct cs35l41_private *cs35l41 = snd_soc_codec_get_drvdata(codec);
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
+#ifdef CONFIG_PRODUCT_PISSARRO
 	unsigned int val = 0;
 #endif
 
-	dev_dbg(cs35l41->dev, "%s: %d\n", __func__, mute);
-	pr_debug("++++>CSPL: %s, mute = %d.\n", __func__, mute);
+	dev_info(cs35l41->dev, "%s: mute = %d\n", __func__, mute);
 
 	if (mute) {
 		regmap_update_bits(cs35l41->regmap, 0x6000,
@@ -1716,7 +1576,7 @@ static int  cs35l41_digital_mute(struct snd_soc_dai *dai, int mute)
 	} else {
 		regmap_update_bits(cs35l41->regmap, 0x6000,
 				0x7ff << 3, 0x0 << 3 | 0x4);
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
+#ifdef CONFIG_PRODUCT_PISSARRO
 		if (cs35l41->pdata.tuning_has_prefix && !IS_ERR(cs35l41->external_switch)) {
 			regmap_read(cs35l41->regmap, CS35L41_AMP_GAIN_CTRL, &val);
 			val = (val >> 5) & 0x1f; /* amp gain: bit[9:5] */
@@ -1730,7 +1590,6 @@ static int  cs35l41_digital_mute(struct snd_soc_dai *dai, int mute)
 #endif
 	}
 
-	pr_debug("---->CSPL: %s.\n", __func__);
 	return 0;
 }
 
@@ -1839,7 +1698,7 @@ static int cs35l41_codec_probe(struct snd_soc_codec *codec)
 	struct snd_kcontrol_new	*kcontrol;
 	int ret;
 
-	printk(KERN_DEBUG "[CSPL] Enter function %s\n", __func__);
+	printk(KERN_INFO "[CSPL] Enter function %s\n", __func__);
 
 	/* Set Platform Data */
 	/* Required */
@@ -1976,7 +1835,7 @@ static int cs35l41_codec_probe(struct snd_soc_codec *codec)
 					CS35L41_CH_WKFET_THLD_SHIFT);
 	}
 
-	printk(KERN_DEBUG "[CSPL] Startng wm_adsp2_codec_probe() ... \n");
+	printk(KERN_INFO "[CSPL] Startng wm_adsp2_codec_probe() ... \n");
 	wm_adsp2_codec_probe(&cs35l41->dsp, codec);
 
 	if (cs35l41->pdata.tuning_has_prefix) {
@@ -2023,23 +1882,14 @@ static int cs35l41_codec_probe(struct snd_soc_codec *codec)
 	regmap_update_bits(cs35l41->regmap,
 			 CS35L41_PWR_CTRL3, 1 << 12, 1 << 12); // VPBR_EN
 	/* VPBR_MAX_ATT=3dB, VPBR_THLD1=2.972v */
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
-    regmap_write(cs35l41->regmap, CS35L41_VPBR_CFG, 0x2AA1309);
+	regmap_write(cs35l41->regmap, CS35L41_VPBR_CFG, 0x2AA1309);
 
-#else
-	regmap_update_bits(cs35l41->regmap,
-                           CS35L41_VPBR_CFG, 0x07FFFF1F , 0x02005306);
-#endif
-
-
-	printk(KERN_DEBUG "[CSPL] Starting snd_soc_add_codec_controls()...\n");
+	printk(KERN_INFO "[CSPL] Starting snd_soc_add_codec_controls()...\n");
 	ret = snd_soc_add_codec_controls(codec, kcontrol, 1);
 	if (ret < 0)
 		dev_err(cs35l41->dev,
 			"snd_soc_add_codec_controls failed (%d)\n", ret);
 	kfree(kcontrol);
-
-	mutex_init(&rcv_pinctrl_mutex);
 exit:
 	return ret;
 }
@@ -2050,10 +1900,10 @@ static int cs35l41_irq_gpio_config(struct cs35l41_private *cs35l41)
 	struct irq_cfg *irq_gpio_cfg2 = &cs35l41->pdata.irq_config2;
 	int irq_pol = IRQF_TRIGGER_NONE;
 
-	printk(KERN_DEBUG "[CSPL] Enter function %s\n", __func__);
+	printk(KERN_INFO "[CSPL] Enter function %s\n", __func__);
 
 	if (irq_gpio_cfg1->is_present) {
-		printk(KERN_DEBUG "[CSPL] %s, irq_gpio_cfg1\n", __func__);
+		printk(KERN_INFO "[CSPL] %s, irq_gpio_cfg1\n", __func__);
 		if (irq_gpio_cfg1->irq_pol_inv)
 			regmap_update_bits(cs35l41->regmap,
 						CS35L41_GPIO1_CTRL1,
@@ -2073,7 +1923,7 @@ static int cs35l41_irq_gpio_config(struct cs35l41_private *cs35l41)
 	}
 
 	if (irq_gpio_cfg2->is_present) {
-		printk(KERN_DEBUG "[CSPL] %s, irq_gpio_cfg2\n", __func__);
+		printk(KERN_INFO "[CSPL] %s, irq_gpio_cfg2\n", __func__);
 		if (irq_gpio_cfg2->irq_pol_inv)
 			regmap_update_bits(cs35l41->regmap,
 						CS35L41_GPIO2_CTRL1,
@@ -2092,7 +1942,7 @@ static int cs35l41_irq_gpio_config(struct cs35l41_private *cs35l41)
 						CS35L41_GPIO2_CTRL_SHIFT);
 	}
 
-	printk(KERN_DEBUG "[CSPL] %s, irq_gpio_cfg2 src_sel[0x%x]\n",
+	printk(KERN_INFO "[CSPL] %s, irq_gpio_cfg2 src_sel[0x%x]\n",
 				__func__, irq_gpio_cfg2->irq_src_sel);
 	if (irq_gpio_cfg2->irq_src_sel ==
 			(CS35L41_GPIO_CTRL_ACTV_LO | CS35L41_VALID_PDATA))
@@ -2101,7 +1951,7 @@ static int cs35l41_irq_gpio_config(struct cs35l41_private *cs35l41)
 			(CS35L41_GPIO_CTRL_ACTV_HI | CS35L41_VALID_PDATA))
 		irq_pol = IRQF_TRIGGER_HIGH;
 
-	printk(KERN_DEBUG "[CSPL] %s, Irq pol[0x%x]\n", __func__, irq_pol);
+	printk(KERN_INFO "[CSPL] %s, Irq pol[0x%x]\n", __func__, irq_pol);
 
 	return irq_pol;
 }
@@ -2493,7 +2343,7 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 	cs35l41->fast_switch_file_idx = 0;
 	cs35l41->reload_tuning = false;
 
-	printk(KERN_DEBUG "[CSPL] Enter function %s\n", __func__);
+	printk(KERN_INFO "[CSPL] Enter function %s\n", __func__);
 
 	for (i = 0; i < ARRAY_SIZE(cs35l41_supplies); i++)
 		cs35l41->supplies[i].supply = cs35l41_supplies[i];
@@ -2549,11 +2399,11 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 		/* satisfy minimum reset pulse width spec */
 		usleep_range(2000, 2100);
 		gpiod_set_value_cansleep(cs35l41->reset_gpio, 1);
-		printk(KERN_DEBUG "[CSPL] Set rest gpio can sleep\n");
+		printk(KERN_INFO "[CSPL] Set rest gpio can sleep\n");
 	}
 
 	usleep_range(2000, 2100);
-#ifdef CONFIG_SND_SOC_CS35L41_PISSARRO//CONFIG_PRODUCT_PISSARRO
+#ifdef CONFIG_PRODUCT_PISSARRO
 	if (cs35l41->pdata.tuning_has_prefix) {
 		cs35l41->external_switch = devm_gpiod_get_optional(cs35l41->dev,
 								"switch", GPIOD_OUT_LOW);
@@ -2573,22 +2423,6 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 		cs35l41->external_switch = NULL;
 		dev_info(cs35l41->dev,
 			"Only rcv driver need to initialize external switch\n");
-	}
-#endif
-#ifdef CONFIG_SND_SOC_CS35L41_CHOPIN
-	cs35l41->external_switch = devm_gpiod_get_optional(cs35l41->dev,
-	 						"switch", GPIOD_OUT_LOW);
-	if (IS_ERR(cs35l41->external_switch)) {
-		if (ret == -EBUSY) {
-			ret = PTR_ERR(cs35l41->external_switch);
-			cs35l41->external_switch = NULL;
-			dev_info(cs35l41->dev,
-				 "switch line busy\n");
-		} else {
-			dev_err(cs35l41->dev,
-				"Failed to get switch GPIO: %d\n", ret);
-			goto err;
-		}
 	}
 #endif
 	do {
@@ -2624,7 +2458,7 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 
 	mtl_revid = reg_revid & CS35L41_MTLREVID_MASK;
 
-	printk(KERN_DEBUG "[CSPL] MTL_Revid[0x%x]\n", mtl_revid);
+	printk(KERN_INFO "[CSPL] MTL_Revid[0x%x]\n", mtl_revid);
 
 	/* CS35L41 will have even MTLREVID
 	*  CS35L41R will have odd MTLREVID
@@ -2650,7 +2484,7 @@ int cs35l41_probe(struct cs35l41_private *cs35l41,
 			//goto err_request_eint_gpio;
 		} else {
 			cs35l41->irq = gpio_to_irq(cs35l41->irq_gpio);
-			printk(KERN_DEBUG "[CSPL] cs35l41_irq_gpio[%d], cs35l41_irq[%d]\n",
+			printk(KERN_INFO "[CSPL] cs35l41_irq_gpio[%d], cs35l41_irq[%d]\n",
 						cs35l41->irq_gpio, cs35l41->irq);
 
 			ret = devm_request_threaded_irq(cs35l41->dev, cs35l41->irq, NULL,

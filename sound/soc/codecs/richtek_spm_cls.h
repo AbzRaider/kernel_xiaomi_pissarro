@@ -1,8 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0 */
-/*
- * Copyright (c) 2021 MediaTek Inc.
- */
-
 #ifndef __LINUX_RICHTEK_BIGDATA_CLASS_H__
 #define __LINUX_RICHTEK_BIGDATA_CLASS_H__
 
@@ -29,7 +24,6 @@ struct richtek_spm_classdev {
 	const struct richtek_spm_device_ops *ops;
 	const struct attribute_group **groups;
 	struct mutex var_lock;
-	uint8_t id;
 	/* internal use for algorithm */
 	s32 rspk;
 	s32 pcb_trace;

@@ -103,7 +103,6 @@ config SND_SOC_ALL_CODECS
 	select SND_SOC_ML26124 if I2C
 	select SND_SOC_MT6358
 	select SND_SOC_MT6359
-	select SND_SOC_MT6366
 	select SND_SOC_NAU8540 if I2C
 	select SND_SOC_NAU8810 if I2C
 	select SND_SOC_NAU8824 if I2C
@@ -576,14 +575,6 @@ config SND_SOC_ES8328_SPI
 	tristate "Everest Semi ES8328 CODEC (SPI)"
 	depends on SPI_MASTER
 	select SND_SOC_ES8328
-
-config SND_SOC_FS16XX
-	tristate "Foursemi speaker amplifier"
-	depends on I2C
-	help
-	  Config of FS18xx . It is a Smart power amplifier which contain speaker protection,
-	  multi-band DRC, equalizer function. It would be set to yes if device with FS18xx on it.
-	  Select this if your FS16xx is connected via an I2S bus.
 
 config SND_SOC_GTM601
 	tristate 'GTM601 UMTS modem audio codec'
@@ -1200,6 +1191,23 @@ config SND_SOC_AW87339
 	  PMIC device which has no speaker protection
 	  function.
 
+config SND_SOC_SIA8109
+	tristate "SoC Audio for SIA8109 speaker amplifier"
+	depends on I2C
+	help
+	  This option enables support for SIA8109 speaker
+	  amplifier. It is a speaker which connect with MTK
+	  PMIC device which has no speaker protection.
+
+config SND_SOC_AA012
+	tristate "Support AA012 driver"
+	depends on I2C
+	help
+	  This option enables support for AA012 boards.
+	  Speaker amp use NXP TFA9874 codec,
+	  USB headset use fsa44xx codec,
+	  This only using on special project phone.
+
 config SND_SOC_LM4857
 	tristate
 
@@ -1219,9 +1227,6 @@ config SND_SOC_MT6358
 	tristate
 
 config SND_SOC_MT6359
-	tristate
-
-config SND_SOC_MT6366
 	tristate
 
 config SND_SOC_MT6392_CODEC
@@ -1251,10 +1256,6 @@ config SND_SOC_RT5509
 	depends on I2C
 	select RT_REGMAP
 
-#Audio Start
-source "sound/soc/codecs/cs35l41/Kconfig"
-#Audio End
-
 config SND_RICHTEK_SPM
 	bool "Richtek SPM Class"
 	help
@@ -1273,30 +1274,8 @@ config SND_SOC_RT5512
 	  multi-band DRC, equalizer function. It would
 	  be set to yes if device with RT5512 on it.
 
-config SND_SOC_SMARTPAINFO
-	tristate "smartpa info"
-	depends on I2C
-	help
-	  Config of SMARTPAINFO. This config can be
-	  used to enable SND_SOC_SMARTPAINFO.
-	  It is a smartpa.It would be set to yes
-	  if device with smartpa on it, enable it.
-	  If unsure, say N.
-
-config SND_SOC_AS33970
-	tristate "Synaptics AS33970 Smart Dsp"
-	depends on I2C
-	help
-	  Config of AS33970. This config can be used
-	  to eanble SND_SOC_AS33970. It is a Smart Dsp.
-	  It would be set to yes if device with
-	  AS33970 on it.
-	  if device with smartpa on it, enable it.
-	  If unsure, say N.
-
-config SND_SOC_CS35L41
-	tristate "Cirrus CS35L41 Smart Amp"
-	select SND_SOC_COMPRESS
-	depends on I2C
+#Audio Start
+source "sound/soc/codecs/cs35l41/Kconfig"
+#Audio End
 
 endmenu

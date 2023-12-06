@@ -3,6 +3,7 @@
  *  MediaTek ALSA SoC Audio DAI ADDA Control
  *
  *  Copyright (c) 2020 MediaTek Inc.
+ *  Copyright (C) 2021 XiaoMi, Inc.
  *  Author: Eason Yen <eason.yen@mediatek.com>
  */
 
@@ -1154,7 +1155,6 @@ static const struct snd_soc_dapm_route mtk_dai_adda_routes[] = {
 
 	{"ADDA_DL_CH1", "DL7_CH1", "DL7"},
 	{"ADDA_DL_CH2", "DL7_CH2", "DL7"},
-
 	{"ADDA_DL_CH1", "DL8_CH1", "DL8"},
 	{"ADDA_DL_CH2", "DL8_CH2", "DL8"},
 

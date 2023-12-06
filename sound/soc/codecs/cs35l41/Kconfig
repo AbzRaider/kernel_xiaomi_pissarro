@@ -19,19 +19,3 @@ config SND_SOC_WM_ADSP
 	select SND_SOC_COMPRESS
 	default y if SND_SOC_CS35L41=y
 	default m if SND_SOC_CS35L41=m
-
-config SND_SOC_CS35L41_ARES
-	tristate "Cirrus Logic CS35L41 CODEC (ARES)"
-	default n
-
-config SND_SOC_CS35L41_CHOPIN
-	tristate "Cirrus Logic CS35L41 CODEC (CHOPIN)"
-	default n
-
-config SND_SOC_CS35L41_AGATE
-	tristate "Cirrus Logic CS35L41 CODEC (AGATE)"
-	default n
-
-config SND_SOC_CS35L41_PISSARRO
-	tristate "Cirrus Logic CS35L41 CODEC (PISSARRO)"
-	default n
