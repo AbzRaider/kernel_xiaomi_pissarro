@@ -331,7 +331,7 @@
 		#sound-dai-cells = <0>;
 		reg = <0x40>;
 		reset-gpio = <&pio 138 0>;
-	/*	switch-gpio = <&pio 111 0>;*/
+		switch-gpio = <&pio 111 0>;
 		interrupt-parent = <&pio>;
 		interrupts = <102 IRQ_TYPE_LEVEL_LOW 102 0>;
 		irq-gpio = <&pio 102 0>;
