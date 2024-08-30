@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2017 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -81,6 +80,12 @@ int charger_enable_powerpath(bool en)
 	return charger_dev_enable_powerpath(pinfo->chg1_dev, en);
 }
 
+int charger_force_disable_powerpath(bool disable)
+{
+	return charger_manager_force_disable_power_path(pinfo->chg1_consumer,
+							MAIN_CHARGER, disable);
+}
+
 int charger_dump_registers(void)
 {
 	return charger_dev_dump_registers(pinfo->chg1_dev);
@@ -96,9 +101,6 @@ int adapter_set_cap(int mV, int mA)
 {
 	int ret;
 
-	if (!pinfo)
-		return ADAPTER_ERROR;
-
 	ret = adapter_dev_set_cap(pinfo->pd_adapter, MTK_PD_APDO, mV, mA);
 	if (ret == MTK_ADAPTER_REJECT)
 		return ADAPTER_REJECT;
@@ -111,9 +113,6 @@ int adapter_set_cap(int mV, int mA)
 int adapter_set_cap_start(int mV, int mA)
 {
 	int ret;
-
-	if (!pinfo)
-		return ADAPTER_ERROR;
 
 	ret = adapter_dev_set_cap(pinfo->pd_adapter, MTK_PD_APDO_START, mV, mA);
 	if (ret == MTK_ADAPTER_REJECT)
@@ -128,64 +127,7 @@ int adapter_set_cap_end(int mV, int mA)
 {
 	int ret;
 
-	if (!pinfo)
-		return ADAPTER_ERROR;
-
 	ret = adapter_dev_set_cap(pinfo->pd_adapter, MTK_PD_APDO_END, mV, mA);
-	if (ret == MTK_ADAPTER_REJECT)
-		return ADAPTER_REJECT;
-	else if (ret != 0)
-		return ADAPTER_ERROR;
-
-	return ADAPTER_OK;
-}
-
-int adapter_set_1st_cap_xm(int mV, int mA)
-{
-	return adapter_dev_set_cap_xm(pinfo->pd_adapter,
-		MTK_PD_APDO_START, mV, mA);
-}
-
-int adapter_set_cap_xm(int mV, int mA)
-{
-	int ret;
-
-	if (!pinfo)
-		return ADAPTER_ERROR;
-
-	ret = adapter_dev_set_cap_xm(pinfo->pd_adapter, MTK_PD_APDO, mV, mA);
-	if (ret == MTK_ADAPTER_REJECT)
-		return ADAPTER_REJECT;
-	else if (ret != 0)
-		return ADAPTER_ERROR;
-
-	return ADAPTER_OK;
-}
-
-int adapter_set_cap_start_xm(int mV, int mA)
-{
-	int ret;
-
-	if (!pinfo)
-		return ADAPTER_ERROR;
-
-	ret = adapter_dev_set_cap_xm(pinfo->pd_adapter, MTK_PD_APDO_START, mV, mA);
-	if (ret == MTK_ADAPTER_REJECT)
-		return ADAPTER_REJECT;
-	else if (ret != 0)
-		return ADAPTER_ERROR;
-
-	return ADAPTER_OK;
-}
-
-int adapter_set_cap_end_xm(int mV, int mA)
-{
-	int ret;
-
-	if (!pinfo)
-		return ADAPTER_ERROR;
-
-	ret = adapter_dev_set_cap_xm(pinfo->pd_adapter, MTK_PD_APDO_END, mV, mA);
 	if (ret == MTK_ADAPTER_REJECT)
 		return ADAPTER_REJECT;
 	else if (ret != 0)
@@ -197,6 +139,45 @@ int adapter_set_cap_end_xm(int mV, int mA)
 int adapter_get_output(int *mV, int *mA)
 {
 	return adapter_dev_get_output(pinfo->pd_adapter, mV, mA);
+}
+
+int adapter_get_pps_cap(struct pps_cap *cap)
+{
+	struct adapter_power_cap tacap = {0};
+	int i;
+
+	adapter_dev_get_cap(pinfo->pd_adapter, MTK_PD_APDO, &tacap);
+
+	cap->selected_cap_idx = tacap.selected_cap_idx;
+	cap->nr = tacap.nr;
+	cap->pdp = tacap.pdp;
+
+	for (i = 0; i < tacap.nr; i++) {
+		cap->pwr_limit[i] = tacap.pwr_limit[i];
+		cap->max_mv[i] = tacap.max_mv[i];
+		cap->min_mv[i] = tacap.min_mv[i];
+		cap->ma[i] = tacap.ma[i];
+		cap->maxwatt[i] = tacap.maxwatt[i];
+		cap->minwatt[i] = tacap.minwatt[i];
+		cap->type[i] = tacap.type[i];
+	}
+
+	return 0;
+}
+
+int adapter_get_status(struct ta_status *sta)
+{
+	struct adapter_status tasta = {0};
+	int ret = 0;
+
+	ret = adapter_dev_get_status(pinfo->pd_adapter, &tasta);
+
+	sta->temperature = tasta.temperature;
+	sta->ocp = tasta.ocp;
+	sta->otp = tasta.otp;
+	sta->ovp = tasta.ovp;
+
+	return ret;
 }
 
 int adapter_is_support_pd_pps(void)
@@ -211,9 +192,6 @@ int adapter_get_cap(struct pd_cap *cap)
 {
 	struct adapter_power_cap tacap = {0};
 	int i;
-
-	if (!pinfo)
-		return 0;
 
 	adapter_dev_get_cap(pinfo->pd_adapter, MTK_PD, &tacap);
 

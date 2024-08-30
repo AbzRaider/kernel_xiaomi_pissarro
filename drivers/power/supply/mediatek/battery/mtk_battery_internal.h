@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -487,6 +486,7 @@ struct fuel_gauge_custom_data {
 	/* ZCV update */
 	int zcv_suspend_time;
 	int sleep_current_avg;
+	int zcv_com_vol_limit;
 
 	int dc_ratio_sel;
 	int dc_r_cnt;
@@ -659,7 +659,6 @@ struct fgd_cmd_param_t_custom {
 struct battery_data {
 	struct power_supply_desc psd;
 	struct power_supply *psy;
-	struct power_supply *ti_bms_psy;
 	int BAT_STATUS;
 	int BAT_HEALTH;
 	int BAT_PRESENT;
@@ -668,8 +667,6 @@ struct battery_data {
 	/* Add for Battery Service */
 	int BAT_batt_vol;
 	int BAT_batt_temp;
-	/* Add for External Gauge */
-	bool USE_TI_GAUGE;
 };
 
 struct BAT_EC_Struct {

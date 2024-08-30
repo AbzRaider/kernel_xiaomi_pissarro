@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2016 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,87 +22,69 @@
 #include <linux/timer.h>
 #include <linux/wait.h>
 #include <linux/alarmtimer.h>
-
-#include <linux/pmic_voter.h>
 #include <mt-plat/charger_type.h>
 #include <mt-plat/mtk_charger.h>
 #include <mt-plat/mtk_battery.h>
+
 #include <mtk_gauge_time_service.h>
+
 #include <mt-plat/charger_class.h>
 
 struct charger_manager;
 struct charger_data;
-
+#include "mtk_pe_intf.h"
+#include "mtk_pe20_intf.h"
+#include "mtk_pe40_intf.h"
+#include "mtk_pe50_intf.h"
 #include "mtk_pdc_intf.h"
 #include "adapter_class.h"
-#include "step_jeita_charge.h"
+#include "mtk_smartcharging.h"
 
-#define CHARGING_INTERVAL	3
-#define CHARGING_FULL_INTERVAL	15
+#define CHARGING_INTERVAL 10
+#define CHARGING_FULL_INTERVAL 20
 
-#define FG_MONITOR_DELAY_2P5S	2500
-#define FG_MONITOR_DELAY_5S	5000
-#define FG_MONITOR_DELAY_8S	8000
-#define FG_MONITOR_DELAY_17P5S	17500
-
-#define HIGH_CHARGE_SPEED	10000
-#define NORMAL_CHARGE_SPEED	5000
-
-#define CHRLOG_ERROR_LEVEL	0
-#define CHRLOG_INFO_LEVEL	1
-#define CHRLOG_DEBUG_LEVEL	2
+#define CHRLOG_ERROR_LEVEL   1
+#define CHRLOG_DEBUG_LEVEL   2
 
 extern int chr_get_debug_level(void);
 
-#define chr_err(fmt, ...)						\
-do {									\
-	if (chr_get_debug_level() >= CHRLOG_ERROR_LEVEL)		\
-		printk(KERN_ERR "[XMCHG_ALG] " fmt, ##__VA_ARGS__);	\
+#define chr_err(fmt, args...)					\
+do {								\
+	if (chr_get_debug_level() >= CHRLOG_ERROR_LEVEL) {	\
+		pr_notice(fmt, ##args);				\
+	}							\
 } while (0)
 
-#define chr_info(fmt, ...)						\
-do {									\
-	if (chr_get_debug_level() >= CHRLOG_INFO_LEVEL)			\
-		printk(KERN_ERR "[XMCHG_ALG] " fmt, ##__VA_ARGS__);	\
+#define chr_info(fmt, args...)					\
+do {								\
+	if (chr_get_debug_level() >= CHRLOG_ERROR_LEVEL) {	\
+		pr_notice_ratelimited(fmt, ##args);		\
+	}							\
 } while (0)
 
-#define chr_debug(fmt, ...)						\
-do {									\
-	if (chr_get_debug_level() >= CHRLOG_DEBUG_LEVEL)		\
-		printk(KERN_ERR "[XMCHG_ALG] " fmt, ##__VA_ARGS__);	\
+#define chr_debug(fmt, args...)					\
+do {								\
+	if (chr_get_debug_level() >= CHRLOG_DEBUG_LEVEL) {	\
+		pr_notice(fmt, ##args);				\
+	}							\
 } while (0)
 
-#define is_between(left, right, value)				\
-		(((left) >= (right) && (left) >= (value)	\
-			&& (value) >= (right))			\
-		|| ((left) <= (right) && (left) <= (value)	\
-			&& (value) <= (right)))
-
-enum charger_plug_status {
-	CHARGER_UNCHANGED,
-	CHARGER_PLUGIN,
-	CHARGER_PLUGOUT,
-};
-
-enum charge_stage {
-	CHG_NONE,
-	CHR_CC,
-	CHR_TOPOFF,
-	CHR_TUNING,
-	CHR_POSTCC,
-	CHR_BATFULL,
-	CHR_ERROR,
-	CHR_PE40_INIT,
-	CHR_PE40_CC,
-	CHR_PE40_TUNING,
-	CHR_PE40_POSTCC,
-	CHR_PE30,
-	CHR_PE40,
-	CHR_PDC,
-	CHR_PE50_READY,
-	CHR_PE50_RUNNING,
-	CHR_PE50,
-};
+#define CHR_CC		(0x0001)
+#define CHR_TOPOFF	(0x0002)
+#define CHR_TUNING	(0x0003)
+#define CHR_POSTCC	(0x0004)
+#define CHR_BATFULL	(0x0005)
+#define CHR_ERROR	(0x0006)
+#define	CHR_PE40_INIT	(0x0007)
+#define	CHR_PE40_CC	(0x0008)
+#define	CHR_PE40_TUNING	(0x0009)
+#define	CHR_PE40_POSTCC	(0x000A)
+#define CHR_PE30	(0x000B)
+#define CHR_PE40	(0x000C)
+#define CHR_PDC		(0x000D)
+#define CHR_PE50_READY	(0x000E)
+#define CHR_PE50_RUNNING	(0x000F)
+#define CHR_PE50	(0x0010)
 
 /* charging abnormal status */
 #define CHG_VBUS_OV_STATUS	(1 << 0)
@@ -193,6 +174,7 @@ struct charger_custom_data {
 	int charging_host_charger_current;
 	int apple_1_0a_charger_current;
 	int apple_2_1a_charger_current;
+	int usb_unlimited_current;
 	int ta_ac_charger_current;
 	int pd_charger_current;
 
@@ -297,6 +279,8 @@ struct charger_custom_data {
 
 struct charger_data {
 	int force_charging_current;
+	int thermal_input_current_limit;
+	int thermal_charging_current_limit;
 	int input_current_limit;
 	int charging_current_limit;
 	int disable_charging_count;
@@ -313,25 +297,6 @@ struct charger_manager {
 	int usb_state;
 	bool usb_unlimited;
 	bool disable_charger;
-	char device_chem[10];
-	bool bq_charge_done;
-	bool battery_full;
-
-	struct votable	*bbc_icl_votable;
-	struct votable	*bbc_fcc_votable;
-	struct votable	*bbc_fv_votable;
-	struct votable	*bbc_iterm_votable;
-	struct votable	*bbc_vinmin_votable;
-	struct votable	*bbc_en_votable;
-
-	struct power_supply *usb_psy;
-	struct power_supply *batt_psy;
-	struct power_supply *bms_psy;
-	struct power_supply *charger_psy;
-	struct power_supply *xmusb350_psy;
-	struct power_supply *bbc_psy;
-	struct power_supply *master_cp_psy;
-	struct power_supply *slave_cp_psy;
 
 	struct charger_device *chg1_dev;
 	struct notifier_block chg1_nb;
@@ -342,81 +307,20 @@ struct charger_manager {
 	struct notifier_block chg2_nb;
 	struct charger_data chg2_data;
 
-	struct charger_device *pmic_dev;
-	struct charger_device *cp_master;
-	struct charger_device *cp_slave;
+	struct charger_device *dvchg1_dev;
+	struct notifier_block dvchg1_nb;
+	struct charger_data dvchg1_data;
+
+	struct charger_device *dvchg2_dev;
+	struct notifier_block dvchg2_nb;
+	struct charger_data dvchg2_data;
 
 	struct adapter_device *pd_adapter;
 
-	int fv;
-	int fv_ffc;
-	int iterm;
-	int iterm_ffc;
-	int max_fcc;
-	int max_ibus;
-	int entry_soc;
-	int ffc_low_tbat;
-	int ffc_medium_tbat;
-	int ffc_high_tbat;
-	int ffc_high_soc;
-	bool ffc_enable;
 
-	int bbc_temp;
-	int cp_master_temp;
-	int cp_slave_temp;
-	int vbus;
-	int ibus;
-	int ibat;
-	int tbat;
-	int vbat;
-	int soc;
-	int charge_status;
-	int cycle_count;
-	int cycle_count_status;
-	bool bbc_enable;
-	int recheck_count;
-	int cv_wa_count;
-
-	int charger_status;
-	int psy_type;
-	int qc3_type;
-	int i350_type;
-	int chr_type;
-	int strong_qc2;
+	enum charger_type chr_type;
 	bool can_charging;
-	bool input_suspend;
-	int bms_i2c_error_count;
-
-	bool bat_verifed;
-	bool pd_verifed;
-	bool pd_verify_done;
-	int pd_type;
-	int apdo_max;
-	int fake_typec_temp;
-
-	struct delayed_work charge_monitor_work;
-	int step_fallback_hyst;
-	int step_forward_hyst;
-	int jeita_fallback_hyst;
-	int jeita_forward_hyst;
-	int sw_cv;
-	int sw_cv_count;
-	int step_chg_index[2];
-	int jeita_chg_index[2];
-	struct step_jeita_cfg0 step_chg_cfg[STEP_JEITA_TUPLE_COUNT];
-	struct step_jeita_cfg0 jeita_fv_cfg[STEP_JEITA_TUPLE_COUNT];
-	struct step_jeita_cfg1 jeita_fcc_cfg[STEP_JEITA_TUPLE_COUNT];
-	int step_chg_fcc;
-	int jeita_chg_fcc;
-
-	bool sic_support;
-	int sic_current;
-	int thermal_limit_fcc;
-	int thermal_level;
-	int thermal_limit[THERMAL_LIMIT_TUPLE][THERMAL_LIMIT_COUNT];
-
-	bool typec_burn;
-	int vbus_control_gpio;
+	int cable_out_cnt;
 
 	int (*do_algorithm)(struct charger_manager *cm);
 	int (*plug_in)(struct charger_manager *cm);
@@ -462,17 +366,21 @@ struct charger_manager {
 
 	/* pe */
 	bool enable_pe_plus;
+	struct mtk_pe pe;
 
 	/* pe 2.0 */
 	bool enable_pe_2;
+	struct mtk_pe20 pe2;
 
 	/* pe 4.0 */
 	bool enable_pe_4;
 	bool leave_pe4;
+	struct mtk_pe40 pe4;
 
 	/* pe 5.0 */
 	bool enable_pe_5;
 	bool leave_pe5;
+	struct mtk_pe50 pe5;
 
 	/* type-C*/
 	bool enable_type_c;
@@ -485,6 +393,9 @@ struct charger_manager {
 	struct mtk_pdc pdc;
 	bool disable_pd_dual;
 
+	int pd_type;
+	bool pd_reset;
+
 	/* thread related */
 	struct hrtimer charger_kthread_timer;
 
@@ -494,10 +405,9 @@ struct charger_manager {
 	bool is_suspend;
 
 	struct wakeup_source charger_wakelock;
-	struct wakeup_source attach_wakelock;
-	struct wakeup_source typec_burn_wakelock;
 	struct mutex charger_lock;
 	struct mutex charger_pd_lock;
+	struct mutex cable_out_lock;
 	spinlock_t slock;
 	unsigned int polling_interval;
 	bool charger_thread_timeout;
@@ -513,16 +423,28 @@ struct charger_manager {
 	/* dynamic mivr */
 	bool enable_dynamic_mivr;
 
+	struct smartcharging sc;
+
 
 	/*daemon related*/
 	struct sock *daemo_nl_sk;
+	u_int g_scd_pid;
+	struct scd_cmd_param_t_1 sc_data;
+
+	bool force_disable_pp[TOTAL_CHARGER];
+	bool enable_pp[TOTAL_CHARGER];
+	struct mutex pp_lock[TOTAL_CHARGER];
 };
 
 /* charger related module interface */
 extern int charger_manager_notifier(struct charger_manager *info, int event);
 extern int mtk_switch_charging_init(struct charger_manager *info);
+extern int mtk_switch_charging_init2(struct charger_manager *info);
+extern int mtk_dual_switch_charging_init(struct charger_manager *info);
+extern int mtk_linear_charging_init(struct charger_manager *info);
 extern void _wake_up_charger(struct charger_manager *info);
 extern int mtk_get_dynamic_cv(struct charger_manager *info, unsigned int *cv);
+extern bool is_dual_charger_supported(struct charger_manager *info);
 extern int charger_enable_vbus_ovp(struct charger_manager *pinfo, bool enable);
 extern bool is_typec_adapter(struct charger_manager *info);
 
